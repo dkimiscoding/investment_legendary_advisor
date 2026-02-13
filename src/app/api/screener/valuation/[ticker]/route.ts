@@ -11,7 +11,8 @@ export async function GET(
     const financialData = await fetchFinancialData(ticker.toUpperCase());
     const result = calculateValuationScore(financialData);
     return NextResponse.json(result);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed' }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : '주가 분석에 실패했습니다';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

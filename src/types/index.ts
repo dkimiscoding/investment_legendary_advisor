@@ -4,8 +4,8 @@
 
 // --- Market Breadth ---
 export interface MarketBreadthData {
-  pctAbove200: number; // S&P500 내 200일선 상회 종목 비율 (0-100)
-  pctAbove50: number;  // S&P500 내 50일선 상회 종목 비율 (0-100)
+  pctAbove200: number;
+  pctAbove50: number;
 }
 
 // --- Chart Screener ---
@@ -17,17 +17,17 @@ export interface ChartData {
   ma200: number;
   rsi14: number;
   volume: number;
-  prices: number[]; // recent prices for pattern detection
+  prices: number[];
   marketBreadth?: MarketBreadthData;
 }
 
 export interface ChartScore {
-  ma: number;        // 0-5: 이동평균선
-  deviation: number; // 0-5: 이격도 (200일선 기준)
-  rsi: number;       // 0-5: RSI
-  pattern: number;   // 0-5: M/W 패턴
-  breadth: number;   // 0-5: MA 상회 종목 비중
-  total: number;     // 0-25
+  ma: number;
+  deviation: number;
+  rsi: number;
+  pattern: number;
+  breadth: number;
+  total: number;
 }
 
 export interface ChartSignals {
@@ -51,16 +51,16 @@ export interface FinancialData {
   currentEPS: number;
   peRatio: number;
   forwardPE: number;
-  epsGrowthRates: number[]; // 5년 EPS 성장률
-  marketPE: number; // S&P500 PE
+  epsGrowthRates: number[];
+  marketPE: number;
 }
 
 export interface ValuationScore {
-  pe: number;         // 0-5
-  fairPrice: number;  // 0-5
-  peg: number;        // 0-5
-  marketPe: number;   // 0-5
-  total: number;      // 0-20
+  pe: number;
+  fairPrice: number;
+  peg: number;
+  marketPe: number;
+  total: number;
 }
 
 export interface ValuationResult {
@@ -73,7 +73,7 @@ export interface ValuationResult {
   fairPERRange: { low: number; mid: number; high: number };
   fairPrice: number;
   fairPriceRange: { low: number; mid: number; high: number };
-  upsideDownside: number; // %
+  upsideDownside: number;
   peg: number;
   scores: ValuationScore;
   verdict: 'undervalued' | 'fair' | 'overvalued';
@@ -99,12 +99,12 @@ export interface SentimentData {
 }
 
 export interface SentimentScore {
-  aaii: number;     // 0-5 (역발상: 비관적일수록 높음)
-  putCall: number;  // 0-5
-  vix: number;      // 0-5
-  margin: number;   // 0-5
-  hy: number;       // 0-5
-  total: number;    // 0-25
+  aaii: number;
+  putCall: number;
+  vix: number;
+  margin: number;
+  hy: number;
+  total: number;
 }
 
 export interface SentimentResult {
@@ -117,13 +117,124 @@ export interface SentimentResult {
   verdict: 'extreme_fear' | 'fear' | 'neutral' | 'greed' | 'extreme_greed';
 }
 
+// --- Dividend Analysis ---
+export interface DividendRawData {
+  dividendYield: number;      // %
+  payoutRatio: number;        // %
+  annualDividend: number;     // $ per share
+  fiveYearAvgYield: number;   // %
+  consecutiveYears: number;
+  growthRate: number;          // 5yr CAGR %
+}
+
+export interface DividendAnalysis {
+  status: 'king' | 'aristocrat' | 'achiever' | 'payer' | 'none';
+  scores: {
+    yield: number;    // 0-5
+    safety: number;   // 0-5
+    growth: number;   // 0-5
+    streak: number;   // 0-5
+  };
+  data: {
+    dividendYield: number;
+    payoutRatio: number;
+    consecutiveYears: number;
+    annualDividend: number;
+    growthRate: number;
+  };
+  totalScore: number;
+}
+
+// --- DividendResult (combined-screener용 확장 타입) ---
+export interface DividendResult {
+  status: 'king' | 'aristocrat' | 'achiever' | 'grower' | 'payer' | 'none';
+  scores: {
+    yield: number;
+    safety: number;
+    growth: number;
+    streak: number;
+    total: number;
+  };
+  data: {
+    dividendYield: number;
+    payoutRatio: number;
+    consecutiveYears: number;
+    annualDividend: number;
+    growthRate: number;
+    dividendYield5YAvg: number;
+  };
+  signals: {
+    yieldVsAvg: 'above_avg' | 'below_avg' | 'at_avg';
+    payoutSafe: boolean;
+  };
+  verdict: 'attractive' | 'neutral' | 'unattractive';
+  totalScore: number;
+}
+
+// --- Market Overview ---
+export interface MarketQuote {
+  label: string;
+  ticker: string;
+  price: number;
+  change: number;
+  changePct: number;
+}
+
+export interface MarketOverview {
+  sp500: MarketQuote;
+  nasdaq: MarketQuote;
+  vix: MarketQuote;
+  treasury10y: MarketQuote;
+  timestamp: string;
+}
+
+// --- Masters Strategy Engine ---
+export interface MastersData {
+  roe: number;                      // Return on Equity (%) — financialData.returnOnEquity × 100
+  debtToEquity: number;             // Debt-to-Equity ratio (%) — financialData.debtToEquity
+  pbr: number;                      // Price-to-Book Ratio — defaultKeyStatistics.priceToBook
+  currentRatio: number;             // Current Ratio — financialData.currentRatio
+  revenueGrowth: number;            // Revenue Growth YoY (%) — financialData.revenueGrowth × 100
+  week52High: number;               // 52-week high price
+  week52Low: number;                // 52-week low price
+  avgVolume10d: number;             // 10-day average daily volume
+  avgVolume3m: number;              // 3-month average daily volume
+  beta: number;                     // Beta (vs S&P 500)
+  sector: string;                   // Sector name
+}
+
+export interface MasterVerdict {
+  master: string;
+  strategy: string;
+  verdict: 'buy' | 'hold' | 'avoid';
+  reason: string;
+  score: number; // 0-10
+}
+
+export interface MastersResult {
+  ticker: string;
+  verdicts: MasterVerdict[];
+  consensus: { buy: number; hold: number; avoid: number };
+  bestFit: string;    // 이 종목에 가장 적합한 대가 전략
+  overallScore: number; // 0-100 (8명 평균)
+}
+
 // --- Combined ---
 export interface CombinedResult {
   ticker: string;
   chart: ChartResult;
   valuation: ValuationResult;
   sentiment: SentimentResult;
-  totalScore: number; // 0-70 (차트25 + 주가20 + 역발상25)
+  dividend?: DividendAnalysis;
+  masters?: MastersResult;
+  dataSources?: {
+    vix: DataSource;
+    putCallRatio: DataSource;
+    aaii: DataSource;
+    marginDebt: DataSource;
+    hySpread: DataSource;
+  };
+  totalScore: number;  // 0-70 (차트25 + 주가20 + 역발상25)
   finalVerdict: 'very_bullish' | 'bullish' | 'neutral' | 'bearish' | 'very_bearish';
   actionGuide: string;
 }
@@ -137,4 +248,60 @@ export interface Top20Stock {
   sentimentScore: number;
   totalScore: number;
   tier: 1 | 2 | 3;
+}
+
+// --- Screening (자동 스크리닝) ---
+export interface ScreeningResult {
+  ticker: string;
+  name: string;
+  category: string;
+  currentPrice: number;
+  changePercent: number;
+  totalScore: number;
+  maxScore: number;
+  chartScore: number;
+  valuationScore: number;
+  sentimentScore: number;
+  dividendScore: number | null;
+  verdict: string;
+  highlights: string[];
+  signals: {
+    maStatus: string;
+    rsiLevel: string;
+    valuationVerdict: string;
+    pattern: string;
+  };
+  isDividendAristocrat: boolean;
+  sector: string;
+  lastUpdated: string;
+}
+
+export interface DailyScreeningReport {
+  date: string;
+  marketSummary: {
+    sp500: { price: number; change: number };
+    vix: { value: number; level: string };
+    tenYearYield: number;
+    sentimentVerdict: string;
+  };
+  topPicks: {
+    fearBuys: ScreeningResult[];
+    undervalued: ScreeningResult[];
+    dividendAttractive: ScreeningResult[];
+    momentumLeaders: ScreeningResult[];
+  };
+  allResults: ScreeningResult[];
+  sectorRotation: {
+    sector: string;
+    avgScore: number;
+    recommendation: string;
+    tickers: string[];
+  }[];
+  stats: {
+    totalAnalyzed: number;
+    successCount: number;
+    failedCount: number;
+    failedTickers: string[];
+  };
+  updatedAt: string;
 }

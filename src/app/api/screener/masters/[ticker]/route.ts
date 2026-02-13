@@ -2,11 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchChartData, fetchFinancialData, fetchMarketBreadth, fetchDividendData, fetchMastersData } from '@/lib/data/yahoo-finance';
 import { fetchSentimentData } from '@/lib/data/sentiment-data';
 import { calculateChartScore } from '@/lib/screeners/chart-screener';
-import { calculateValuationScore } from '@/lib/screeners/valuation-screener';
 import { calculateSentimentScore } from '@/lib/screeners/sentiment-screener';
-import { calculateCombinedScore } from '@/lib/screeners/combined-screener';
-import { calculateDividendScore } from '@/lib/screeners/dividend-screener';
-import { analyzeMasters } from '@/lib/screeners/masters-screener';
+import { analyzeMasters, generateMastersSummary } from '@/lib/screeners/masters-screener';
 
 export async function GET(
   request: NextRequest,
@@ -16,25 +13,25 @@ export async function GET(
     const { ticker: rawTicker } = await params;
     const ticker = rawTicker.toUpperCase();
 
-    const [chartData, financialData, sentimentData, breadth, dividendData, mastersData] = await Promise.all([
+    // 병렬 데이터 수집
+    const [chartData, financialData, mastersData, sentimentData, breadth, dividendData] = await Promise.all([
       fetchChartData(ticker),
       fetchFinancialData(ticker),
+      fetchMastersData(ticker),
       fetchSentimentData(),
       fetchMarketBreadth(),
       fetchDividendData(ticker),
-      fetchMastersData(ticker),
     ]);
 
     chartData.marketBreadth = breadth;
 
-    const chartResult = calculateChartScore(chartData);
-    const valuationResult = calculateValuationScore(financialData);
+    // 센티먼트 결과 (대가 분석에 필요)
     const sentimentResult = calculateSentimentScore(sentimentData);
 
-    // 배당 분석
-    const dividendAnalysis = dividendData ? calculateDividendScore(dividendData) : undefined;
+    // 차트 결과 (리버모어, 사이먼스 등에 필요)
+    calculateChartScore(chartData);
 
-    // 투자 대가 전략 분석
+    // 8대 투자 대가 분석 실행
     const mastersResult = analyzeMasters({
       ticker,
       mastersData,
@@ -44,14 +41,16 @@ export async function GET(
       dividendData,
     });
 
-    const combined = calculateCombinedScore(chartResult, valuationResult, sentimentResult, dividendAnalysis, mastersResult);
+    // 요약 텍스트 생성
+    const summary = generateMastersSummary(mastersResult);
 
     return NextResponse.json({
-      ...combined,
-      dataSources: sentimentData.sources,
+      ...mastersResult,
+      mastersData, // 원시 데이터도 포함
+      summary,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Failed';
+    const message = error instanceof Error ? error.message : 'Failed to analyze masters strategy';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

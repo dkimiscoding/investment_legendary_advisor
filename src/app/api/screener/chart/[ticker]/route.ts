@@ -8,14 +8,18 @@ export async function GET(
 ) {
   try {
     const { ticker } = await params;
+    const upperTicker = ticker.toUpperCase();
+
     const [chartData, breadth] = await Promise.all([
-      fetchChartData(ticker.toUpperCase()),
+      fetchChartData(upperTicker),
       fetchMarketBreadth(),
     ]);
     chartData.marketBreadth = breadth;
+
     const result = calculateChartScore(chartData);
     return NextResponse.json(result);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed' }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : '차트 데이터 분석에 실패했습니다';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -10,10 +10,8 @@ export async function GET() {
       ...result,
       dataSources: data.sources,
     });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to fetch sentiment data' },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : '센티먼트 데이터 수집에 실패했습니다';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

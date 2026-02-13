@@ -6,6 +6,9 @@
 
 import { SentimentData, DataSource } from '@/types';
 import { getCached, setCache, TTL } from '../cache';
+import { createLogger } from '../logger';
+
+const log = createLogger('Sentiment');
 
 // ─── 타입 정의 ────────────────────────────────────────
 
@@ -64,11 +67,12 @@ async function fetchAAII(): Promise<AAIIResult> {
           source: 'live',
         };
         setCache(AAII_CACHE_KEY, result, TTL.SENTIMENT);
+        log.info(`AAII 데이터 수집 성공 (Bull: ${result.bullish}%, Bear: ${result.bearish}%)`);
         return result;
       }
     }
   } catch (err) {
-    console.warn('[Sentiment] AAII website fetch failed:', err);
+    log.warn('AAII 웹사이트 수집 실패:', err);
   }
 
   // 2차: AAII 대안 URL 시도
@@ -91,15 +95,16 @@ async function fetchAAII(): Promise<AAIIResult> {
           source: 'live',
         };
         setCache(AAII_CACHE_KEY, result, TTL.SENTIMENT);
+        log.info(`AAII 대안 URL 수집 성공`);
         return result;
       }
     }
   } catch (err) {
-    console.warn('[Sentiment] AAII alternative fetch failed:', err);
+    log.warn('AAII 대안 URL 수집 실패:', err);
   }
 
   // Fallback: 장기 평균 기반 기본값
-  console.info('[Sentiment] AAII: using fallback (historical average)');
+  log.info('AAII: 폴백 데이터 사용 (장기 평균)');
   const fallback: AAIIResult = { bullish: 37.5, bearish: 31.0, source: 'fallback' };
   setCache(AAII_CACHE_KEY, fallback, TTL.REALTIME); // fallback은 짧은 TTL로 빨리 재시도
   return fallback;
@@ -128,7 +133,6 @@ async function fetchPutCallRatio(): Promise<PutCallResult> {
     );
     if (res.ok) {
       const text = await res.text();
-      // Total Put/Call Ratio 파싱 시도
       const match = text.match(
         /(?:Total\s+)?Put\/Call\s+Ratio[^0-9]*?(\d+\.?\d*)/i
       );
@@ -138,11 +142,12 @@ async function fetchPutCallRatio(): Promise<PutCallResult> {
           source: 'live',
         };
         setCache(PC_CACHE_KEY, result, TTL.SENTIMENT);
+        log.info(`Put/Call Ratio 수집 성공: ${result.value}`);
         return result;
       }
     }
   } catch (err) {
-    console.warn('[Sentiment] CBOE P/C ratio fetch failed:', err);
+    log.warn('CBOE P/C Ratio 수집 실패:', err);
   }
 
   // 2차: CBOE 일별 P/C CSV 시도
@@ -167,11 +172,10 @@ async function fetchPutCallRatio(): Promise<PutCallResult> {
       }
     }
   } catch (err) {
-    console.warn('[Sentiment] CBOE alternative P/C fetch failed:', err);
+    log.warn('CBOE 대안 P/C Ratio 수집 실패:', err);
   }
 
-  // 3차: VIX 기반 추정 (VIX > 30 → P/C ~1.0+, VIX < 15 → P/C ~0.6)
-  // VIX를 가져와서 간접 추정
+  // 3차: VIX 기반 추정
   try {
     const { fetchVIX } = await import('./yahoo-finance');
     const vix = await fetchVIX();
@@ -182,11 +186,14 @@ async function fetchPutCallRatio(): Promise<PutCallResult> {
       source: 'fallback',
     };
     setCache(PC_CACHE_KEY, result, TTL.REALTIME);
+    log.info(`Put/Call Ratio: VIX(${vix}) 기반 추정값 사용 (${result.value})`);
     return result;
-  } catch {}
+  } catch {
+    // 최종 폴백
+  }
 
   // 최종 fallback
-  console.info('[Sentiment] Put/Call: using fallback (neutral estimate)');
+  log.info('Put/Call Ratio: 폴백 데이터 사용 (중립 추정)');
   const fallback: PutCallResult = { value: 0.85, source: 'fallback' };
   setCache(PC_CACHE_KEY, fallback, TTL.REALTIME);
   return fallback;
@@ -202,7 +209,7 @@ async function fetchMarginDebt(): Promise<MarginDebtResult> {
 
   const apiKey = process.env.FRED_API_KEY;
   if (!apiKey) {
-    console.info('[Sentiment] Margin Debt: FRED_API_KEY not set, using fallback');
+    log.info('Margin Debt: FRED_API_KEY 미설정, 폴백 사용');
     const fallback: MarginDebtResult = { yoy: 0, source: 'fallback' };
     setCache(MARGIN_CACHE_KEY, fallback, TTL.SENTIMENT);
     return fallback;
@@ -227,12 +234,13 @@ async function fetchMarginDebt(): Promise<MarginDebtResult> {
             source: 'live',
           };
           setCache(MARGIN_CACHE_KEY, result, TTL.WEEKLY);
+          log.info(`Margin Debt YoY 수집 성공: ${result.yoy}%`);
           return result;
         }
       }
     }
   } catch (err) {
-    console.warn('[Sentiment] FRED margin debt fetch failed:', err);
+    log.warn('FRED Margin Debt 수집 실패:', err);
   }
 
   // Fallback: FINRA margin debt 대안 (monthly)
@@ -256,15 +264,16 @@ async function fetchMarginDebt(): Promise<MarginDebtResult> {
             source: 'live',
           };
           setCache(MARGIN_CACHE_KEY, result, TTL.WEEKLY);
+          log.info(`Margin Debt (MDOTHM) 수집 성공: ${result.yoy}%`);
           return result;
         }
       }
     }
   } catch (err) {
-    console.warn('[Sentiment] FRED MDOTHM fetch failed:', err);
+    log.warn('FRED MDOTHM 수집 실패:', err);
   }
 
-  console.info('[Sentiment] Margin Debt: using fallback');
+  log.info('Margin Debt: 폴백 사용');
   const fallback: MarginDebtResult = { yoy: 0, source: 'fallback' };
   setCache(MARGIN_CACHE_KEY, fallback, TTL.SENTIMENT);
   return fallback;
@@ -293,15 +302,16 @@ async function fetchHYSpread(): Promise<HYSpreadResult> {
         if (value && !isNaN(value)) {
           const result: HYSpreadResult = { value, source: 'live' };
           setCache(HY_CACHE_KEY, result, TTL.SENTIMENT);
+          log.info(`HY Spread 수집 성공: ${value}%`);
           return result;
         }
       }
     } catch (err) {
-      console.warn('[Sentiment] FRED HY Spread fetch failed:', err);
+      log.warn('FRED HY Spread 수집 실패:', err);
     }
   }
 
-  console.info('[Sentiment] HY Spread: using fallback');
+  log.info('HY Spread: 폴백 사용');
   const fallback: HYSpreadResult = { value: 3.5, source: 'fallback' };
   setCache(HY_CACHE_KEY, fallback, TTL.REALTIME);
   return fallback;
@@ -322,7 +332,7 @@ async function fetchVIXForSentiment(): Promise<VIXResult> {
     setCache(VIX_CACHE_KEY, result, TTL.REALTIME);
     return result;
   } catch (err) {
-    console.warn('[Sentiment] VIX fetch failed:', err);
+    log.warn('VIX 수집 실패:', err);
   }
 
   const fallback: VIXResult = { value: 20, source: 'fallback' };
@@ -346,29 +356,25 @@ export async function fetchSentimentData(): Promise<SentimentData> {
       fetchHYSpread(),
     ]);
 
-  const data: SentimentData = {
+  const sources = {
+    vix: vixResult.source,
+    putCallRatio: pcResult.source,
+    aaii: aaiiResult.source,
+    marginDebt: marginResult.source,
+    hySpread: hyResult.source,
+  };
+
+  const liveCount = Object.values(sources).filter((s) => s === 'live').length;
+  const totalCount = Object.values(sources).length;
+  log.info(`센티먼트 데이터 수집 완료: ${liveCount}/${totalCount} 라이브 소스`);
+
+  return {
     vix: vixResult.value,
     putCallRatio: pcResult.value,
     aaiiBullish: aaiiResult.bullish,
     aaiiBearish: aaiiResult.bearish,
     marginDebtYoY: marginResult.yoy,
     hySpread: hyResult.value,
-    sources: {
-      vix: vixResult.source,
-      putCallRatio: pcResult.source,
-      aaii: aaiiResult.source,
-      marginDebt: marginResult.source,
-      hySpread: hyResult.source,
-    },
+    sources,
   };
-
-  // 디버그: 소스 상태 로깅
-  const liveCount = Object.values(data.sources!).filter((s) => s === 'live').length;
-  const totalCount = Object.values(data.sources!).length;
-  console.info(
-    `[Sentiment] Data collected: ${liveCount}/${totalCount} live sources`,
-    data.sources
-  );
-
-  return data;
 }
