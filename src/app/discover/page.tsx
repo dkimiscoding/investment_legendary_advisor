@@ -610,7 +610,7 @@ export default function DiscoverPage() {
       <footer className="mt-8 border-t border-gray-800 pt-6 pb-8 text-center text-xs text-gray-500 px-4">
         <p className="mb-2">⚠️ 본 서비스는 투자 자문이 아닌 정보 제공 목적의 분석 도구입니다.</p>
         <p className="mb-2">투자 판단의 모든 책임은 투자자 본인에게 있으며, 본 서비스의 분석 결과를 투자 권유로 해석해서는 안 됩니다.</p>
-        <p>소몽의 미국주식 마스터클래스 방법론을 기반으로 한 교육/학습 목적의 도구입니다.</p>
+        <p>미국주식 투자 방법론을 기반으로 한 교육/학습 목적의 도구입니다.</p>
       </footer>
     </main>
   );

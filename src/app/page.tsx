@@ -909,7 +909,7 @@ export default function Home() {
       <header className="border-b border-gray-800 px-4 sm:px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-lg sm:text-xl font-bold">📊 소몽의 투자분석 판독기</h1>
+            <h1 className="text-lg sm:text-xl font-bold">📊 디킴의 투자분석 판독기</h1>
             <p className="text-xs sm:text-sm text-gray-400">3종 판독기 기반 미국주식 분석 도구</p>
           </div>
           {marketData && (
@@ -1104,7 +1104,7 @@ export default function Home() {
           투자 판단의 모든 책임은 투자자 본인에게 있으며, 본 서비스의 분석 결과를 투자 권유로
           해석해서는 안 됩니다.
         </p>
-        <p>소몽의 미국주식 마스터클래스 방법론을 기반으로 한 교육/학습 목적의 도구입니다.</p>
+        <p>미국주식 투자 방법론을 기반으로 한 교육/학습 목적의 도구입니다.</p>
       </footer>
     </main>
   );

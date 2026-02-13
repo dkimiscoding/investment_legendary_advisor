@@ -1,7 +1,7 @@
 /**
  * 주가 판독기 (Valuation Screener)
  * 
- * 소몽의 핵심 공식:
+ * 핵심 공식:
  * - 적정주가 = 예상 EPS × 적정 PER
  * - 적정 PER = EPS 성장률(%) × (1 ~ 2)
  * - PEG = PER / EPS 성장률

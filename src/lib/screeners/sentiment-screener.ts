@@ -1,7 +1,7 @@
 /**
  * 역발상 판독기 (Sentiment/Contrarian Screener)
  * 
- * 소몽의 역발상 투자 원리:
+ * 역발상 투자 원리:
  * - 시장이 공포에 빠질 때 매수 (VIX 높음, P/C Ratio 높음)
  * - 시장이 환호할 때 매도
  * 
