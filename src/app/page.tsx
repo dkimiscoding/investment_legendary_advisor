@@ -930,6 +930,9 @@ export default function Home() {
           <Link href="/discover" className="text-gray-400 hover:text-white transition-colors py-1">
             🔍 추천 종목
           </Link>
+          <Link href="/etf" className="text-gray-400 hover:text-white transition-colors py-1">
+            📦 ETF 추천
+          </Link>
         </div>
       </nav>
 

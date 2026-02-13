@@ -465,6 +465,9 @@ export default function DiscoverPage() {
           <span className="text-blue-400 font-medium border-b-2 border-blue-400 py-1">
             🔍 추천 종목
           </span>
+          <Link href="/etf" className="text-gray-400 hover:text-white transition-colors py-1">
+            📦 ETF 추천
+          </Link>
         </div>
       </nav>
 
