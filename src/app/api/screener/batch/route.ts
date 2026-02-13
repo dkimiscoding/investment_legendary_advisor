@@ -6,6 +6,7 @@
  * 최대 10개 종목 동시 분석
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { sanitizeTicker } from '@/lib/validate-ticker';
 import { fetchChartData, fetchFinancialData, fetchMarketBreadth } from '@/lib/data/yahoo-finance';
 import { fetchSentimentData } from '@/lib/data/sentiment-data';
 import { calculateChartScore } from '@/lib/screeners/chart-screener';
@@ -52,7 +53,10 @@ export async function POST(request: NextRequest) {
     // 종목별 분석 병렬 실행
     const results: BatchResult[] = await Promise.all(
       tickers.map(async (rawTicker): Promise<BatchResult> => {
-        const ticker = rawTicker.toUpperCase().trim();
+        const ticker = sanitizeTicker(rawTicker);
+        if (!ticker) {
+          return { ticker: rawTicker, success: false, error: '유효하지 않은 티커' };
+        }
         try {
           const [chartData, financialData] = await Promise.all([
             fetchChartData(ticker),

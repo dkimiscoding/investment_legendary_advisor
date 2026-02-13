@@ -7,6 +7,7 @@ import { calculateSentimentScore } from '@/lib/screeners/sentiment-screener';
 import { calculateCombinedScore } from '@/lib/screeners/combined-screener';
 import { calculateDividendScore } from '@/lib/screeners/dividend-screener';
 import { analyzeMasters } from '@/lib/screeners/masters-screener';
+import { sanitizeTicker } from '@/lib/validate-ticker';
 
 export async function GET(
   request: NextRequest,
@@ -14,7 +15,10 @@ export async function GET(
 ) {
   try {
     const { ticker: rawTicker } = await params;
-    const ticker = rawTicker.toUpperCase();
+    const ticker = sanitizeTicker(rawTicker);
+    if (!ticker) {
+      return NextResponse.json({ error: '유효하지 않은 티커입니다' }, { status: 400 });
+    }
 
     const [chartData, financialData, sentimentData, breadth, dividendData, mastersData] = await Promise.all([
       fetchChartData(ticker),
