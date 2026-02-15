@@ -65,12 +65,12 @@ interface DailyReport {
 // ─── 상수 ────────────────────────────────────────────
 
 const TABS = [
-  { key: 'today', label: '🏆 오늘의 추천', description: '종합 점수 상위 종목' },
-  { key: 'fearBuys', label: '😱 공포매수', description: '시장 공포 구간의 매수 기회' },
-  { key: 'undervalued', label: '💰 저평가', description: '주가 판독기 기준 저평가 종목' },
-  { key: 'dividendAttractive', label: '💎 배당매력', description: '배당 관점 매력적 종목' },
-  { key: 'momentumLeaders', label: '🚀 모멘텀', description: '상승추세 + 건강한 RSI 구간' },
-  { key: 'sector', label: '📊 섹터분석', description: '섹터별 평균 점수 비교' },
+  { key: 'today', label: '🏆 오늘의 추천', description: '차트·가치·심리 종합 점수가 가장 높은 상위 10개 종목' },
+  { key: 'fearBuys', label: '😱 공포 속 기회', description: '시장이 공포에 빠졌을 때 저평가된 종목 — 남들이 팔 때 싸게 사는 전략' },
+  { key: 'undervalued', label: '💰 저평가 종목', description: '현재 주가가 적정 가치보다 낮은 종목 — 가치 평가 기준' },
+  { key: 'dividendAttractive', label: '💎 배당 매력', description: '높은 배당수익률 + 안정적 배당 이력을 가진 종목' },
+  { key: 'momentumLeaders', label: '🚀 상승 모멘텀', description: '차트 상승 추세 + RSI가 과매수 구간이 아닌 건강한 종목' },
+  { key: 'sector', label: '📊 섹터 분석', description: '업종(섹터)별 평균 종합 점수 비교 — 어떤 업종이 유리한지 확인' },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
@@ -84,12 +84,12 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: '기타',
 };
 
-const SENTIMENT_LABELS: Record<string, { label: string; color: string }> = {
-  extreme_fear: { label: '극도 공포', color: 'text-green-400' },
-  fear: { label: '공포', color: 'text-green-300' },
-  neutral: { label: '중립', color: 'text-yellow-400' },
-  greed: { label: '환호', color: 'text-orange-400' },
-  extreme_greed: { label: '극도 환호', color: 'text-red-400' },
+const SENTIMENT_LABELS: Record<string, { label: string; color: string; action: string }> = {
+  extreme_fear: { label: '극도 공포', color: 'text-green-400', action: '→ 매수 기회 탐색 구간' },
+  fear: { label: '공포', color: 'text-green-300', action: '→ 매수에 유리한 환경' },
+  neutral: { label: '중립', color: 'text-yellow-400', action: '→ 관망 또는 선별 매수' },
+  greed: { label: '환호', color: 'text-orange-400', action: '→ 신규 매수 주의' },
+  extreme_greed: { label: '극도 환호', color: 'text-red-400', action: '→ 과열 경고, 매수 자제' },
 };
 
 const SECTOR_LABELS: Record<string, string> = {
@@ -139,11 +139,11 @@ function MiniScoreBar({ label, score, max, color }: { label: string; score: numb
   const pct = Math.round((score / max) * 100);
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className="text-gray-500 w-10 shrink-0">{label}</span>
+      <span className="text-gray-500 w-14 shrink-0">{label}</span>
       <div className="flex-1 bg-gray-800 rounded-full h-1.5">
         <div className={`${color} h-1.5 rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-gray-400 w-8 text-right">{score}/{max}</span>
+      <span className="text-gray-400 w-10 text-right">{score}/{max}점</span>
     </div>
   );
 }
@@ -171,8 +171,8 @@ function StockCard({ result }: { result: ScreeningResult }) {
           <span className="text-xs text-gray-600">{CATEGORY_LABELS[result.category] || result.category}</span>
         </div>
         <div className="text-right shrink-0 ml-3">
-          <div className={`text-2xl font-bold ${scoreColor}`}>{pct}%</div>
-          <div className="text-xs text-gray-500">{result.totalScore}/{result.maxScore}</div>
+          <div className={`text-2xl font-bold ${scoreColor}`}>{pct}점</div>
+          <div className="text-xs text-gray-500">{result.totalScore}/{result.maxScore}점 (100점 환산)</div>
         </div>
       </div>
 
@@ -190,11 +190,11 @@ function StockCard({ result }: { result: ScreeningResult }) {
 
       {/* Mini Score Bars */}
       <div className="space-y-1.5 mb-3">
-        <MiniScoreBar label="차트" score={result.chartScore} max={25} color="bg-blue-500" />
-        <MiniScoreBar label="주가" score={result.valuationScore} max={20} color="bg-green-500" />
-        <MiniScoreBar label="역발상" score={result.sentimentScore} max={25} color="bg-purple-500" />
+        <MiniScoreBar label="차트 분석" score={result.chartScore} max={25} color="bg-blue-500" />
+        <MiniScoreBar label="가치 평가" score={result.valuationScore} max={20} color="bg-green-500" />
+        <MiniScoreBar label="시장 심리" score={result.sentimentScore} max={25} color="bg-purple-500" />
         {result.dividendScore !== null && (
-          <MiniScoreBar label="배당" score={result.dividendScore} max={20} color="bg-amber-500" />
+          <MiniScoreBar label="배당 분석" score={result.dividendScore} max={20} color="bg-amber-500" />
         )}
       </div>
 
@@ -267,12 +267,12 @@ function SectorCard({ sector }: { sector: SectorRotation }) {
 // ─── 컴포넌트: MarketSummary ────────────────────────
 
 function MarketSummary({ summary }: { summary: DailyReport['marketSummary'] }) {
-  const sentiment = SENTIMENT_LABELS[summary.sentimentVerdict] || { label: summary.sentimentVerdict, color: 'text-gray-400' };
+  const sentiment = SENTIMENT_LABELS[summary.sentimentVerdict] || { label: summary.sentimentVerdict, color: 'text-gray-400', action: '' };
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
       <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-        <div className="text-xs text-gray-500 mb-1">S&P 500</div>
+        <div className="text-xs text-gray-500 mb-1">S&P 500 (미국 대표지수)</div>
         <div className="text-white font-bold">
           {summary.sp500.price > 0 ? summary.sp500.price.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'}
         </div>
@@ -283,18 +283,18 @@ function MarketSummary({ summary }: { summary: DailyReport['marketSummary'] }) {
         )}
       </div>
       <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-        <div className="text-xs text-gray-500 mb-1">VIX (공포지수)</div>
+        <div className="text-xs text-gray-500 mb-1">VIX 공포지수 (높을수록 공포)</div>
         <div className="text-white font-bold">{summary.vix.value.toFixed(2)}</div>
         <div className="text-xs text-gray-400">{summary.vix.level}</div>
       </div>
       <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-        <div className="text-xs text-gray-500 mb-1">미국 10년 금리</div>
+        <div className="text-xs text-gray-500 mb-1">미국 10년 국채금리</div>
         <div className="text-white font-bold">{summary.tenYearYield > 0 ? `${summary.tenYearYield.toFixed(2)}%` : '—'}</div>
       </div>
       <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-        <div className="text-xs text-gray-500 mb-1">시장 심리</div>
+        <div className="text-xs text-gray-500 mb-1">시장 심리 (공포·탐욕)</div>
         <div className={`font-bold ${sentiment.color}`}>{sentiment.label}</div>
-        <div className="text-xs text-gray-500">역발상 판독기</div>
+        <div className="text-xs text-gray-500">{sentiment.action}</div>
       </div>
     </div>
   );
@@ -435,7 +435,7 @@ export default function DiscoverPage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-lg sm:text-xl font-bold">🔍 추천 종목 스크리너</h1>
-            <p className="text-xs sm:text-sm text-gray-400">알고리즘 기반 미국주식 추천 시스템</p>
+            <p className="text-xs sm:text-sm text-gray-400">차트·가치·심리 분석 기반 미국주식 종목 발굴 시스템</p>
           </div>
           <div className="flex items-center gap-3">
             {report && (
@@ -555,11 +555,11 @@ export default function DiscoverPage() {
                         <th className="text-left py-2 px-3 text-gray-500 font-medium">종목</th>
                         <th className="text-right py-2 px-3 text-gray-500 font-medium">현재가</th>
                         <th className="text-right py-2 px-3 text-gray-500 font-medium">등락</th>
-                        <th className="text-right py-2 px-3 text-gray-500 font-medium">차트</th>
-                        <th className="text-right py-2 px-3 text-gray-500 font-medium">주가</th>
-                        <th className="text-right py-2 px-3 text-gray-500 font-medium">역발상</th>
-                        <th className="text-right py-2 px-3 text-gray-500 font-medium">배당</th>
-                        <th className="text-right py-2 px-3 text-gray-500 font-medium">종합</th>
+                        <th className="text-right py-2 px-3 text-gray-500 font-medium">차트(25)</th>
+                        <th className="text-right py-2 px-3 text-gray-500 font-medium">가치(20)</th>
+                        <th className="text-right py-2 px-3 text-gray-500 font-medium">심리(25)</th>
+                        <th className="text-right py-2 px-3 text-gray-500 font-medium">배당(20)</th>
+                        <th className="text-right py-2 px-3 text-gray-500 font-medium">종합점수</th>
                         <th className="text-left py-2 px-3 text-gray-500 font-medium">판정</th>
                       </tr>
                     </thead>
@@ -580,14 +580,14 @@ export default function DiscoverPage() {
                           <td className={`py-2 px-3 text-right ${r.changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                             {r.changePercent !== 0 ? `${r.changePercent >= 0 ? '+' : ''}${r.changePercent.toFixed(2)}%` : '—'}
                           </td>
-                          <td className="py-2 px-3 text-right text-blue-400">{r.chartScore}/25</td>
-                          <td className="py-2 px-3 text-right text-green-400">{r.valuationScore}/20</td>
-                          <td className="py-2 px-3 text-right text-purple-400">{r.sentimentScore}/25</td>
+                          <td className="py-2 px-3 text-right text-blue-400">{r.chartScore}/25점</td>
+                          <td className="py-2 px-3 text-right text-green-400">{r.valuationScore}/20점</td>
+                          <td className="py-2 px-3 text-right text-purple-400">{r.sentimentScore}/25점</td>
                           <td className="py-2 px-3 text-right text-amber-400">
-                            {r.dividendScore !== null ? `${r.dividendScore}/20` : '—'}
+                            {r.dividendScore !== null ? `${r.dividendScore}/20점` : '—'}
                           </td>
                           <td className={`py-2 px-3 text-right font-bold ${getScoreColor(r.totalScore, r.maxScore)}`}>
-                            {Math.round((r.totalScore / r.maxScore) * 100)}%
+                            {Math.round((r.totalScore / r.maxScore) * 100)}점
                           </td>
                           <td className="py-2 px-3 text-xs">{r.verdict}</td>
                         </tr>

@@ -71,12 +71,12 @@ interface ETFReport {
 // ─── 상수 ────────────────────────────────────────────
 
 const TABS = [
-  { key: 'topPicks', label: '🏆 TOP 추천', desc: '종합 점수 상위 ETF' },
-  { key: 'momentum', label: '🚀 모멘텀', desc: '수익률 상위 ETF' },
-  { key: 'value', label: '💎 저점 기회', desc: '52주 저점 근처 + 효율 우수' },
-  { key: 'dividend', label: '💰 배당', desc: '배당 ETF 랭킹' },
-  { key: 'sector', label: '📊 카테고리별', desc: '카테고리별 1위' },
-  { key: 'all', label: '📋 전체', desc: '전체 ETF 랭킹' },
+  { key: 'topPicks', label: '🏆 TOP 추천', desc: '차트·효율·모멘텀 종합 점수 상위 ETF' },
+  { key: 'momentum', label: '🚀 모멘텀', desc: '최근 수익률이 가장 높은 상승세 ETF' },
+  { key: 'value', label: '💎 저점 기회', desc: '52주 최저가 근처이면서 효율성이 우수한 ETF' },
+  { key: 'dividend', label: '💰 배당', desc: '배당수익률 기준 매력적인 ETF' },
+  { key: 'sector', label: '📊 카테고리별', desc: '각 카테고리에서 종합 1위 ETF' },
+  { key: 'all', label: '📋 전체', desc: '분석된 전체 ETF 종합 랭킹' },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
@@ -233,8 +233,8 @@ export default function ETFPage() {
                 <div className="text-xs text-gray-500">1위 ETF</div>
               </div>
               <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold text-purple-400">{report.topPicks[0]?.totalScore || 0}/70</div>
-                <div className="text-xs text-gray-500">최고 점수</div>
+                <div className="text-2xl font-bold text-purple-400">{report.topPicks[0]?.totalScore || 0}/70점</div>
+                <div className="text-xs text-gray-500">최고 점수 (70점 만점)</div>
               </div>
             </div>
 
@@ -291,7 +291,7 @@ export default function ETFPage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-lg font-bold">{etf.totalScore}/70</div>
+                          <div className="text-lg font-bold">{etf.totalScore}/70점</div>
                           <div className="text-xs">{etf.verdictLabel}</div>
                         </div>
                       </div>
@@ -301,7 +301,7 @@ export default function ETFPage() {
                     <div className="mt-3 flex gap-2">
                       <div className="flex-1">
                         <div className="flex justify-between text-xs text-gray-500 mb-1">
-                          <span>차트</span><span>{etf.chartScore}/25</span>
+                          <span>차트 분석</span><span>{etf.chartScore}/25점</span>
                         </div>
                         <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
                           <div className={`h-full rounded-full ${scoreBar(etf.chartScore, 25)}`} style={{ width: `${(etf.chartScore / 25) * 100}%` }} />
@@ -309,7 +309,7 @@ export default function ETFPage() {
                       </div>
                       <div className="flex-1">
                         <div className="flex justify-between text-xs text-gray-500 mb-1">
-                          <span>효율</span><span>{etf.efficiencyScore}/20</span>
+                          <span>효율성</span><span>{etf.efficiencyScore}/20점</span>
                         </div>
                         <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
                           <div className={`h-full rounded-full ${scoreBar(etf.efficiencyScore, 20)}`} style={{ width: `${(etf.efficiencyScore / 20) * 100}%` }} />
@@ -317,7 +317,7 @@ export default function ETFPage() {
                       </div>
                       <div className="flex-1">
                         <div className="flex justify-between text-xs text-gray-500 mb-1">
-                          <span>모멘텀</span><span>{etf.momentumScore}/25</span>
+                          <span>수익 모멘텀</span><span>{etf.momentumScore}/25점</span>
                         </div>
                         <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
                           <div className={`h-full rounded-full ${scoreBar(etf.momentumScore, 25)}`} style={{ width: `${(etf.momentumScore / 25) * 100}%` }} />
@@ -332,36 +332,36 @@ export default function ETFPage() {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                         {/* 수익률 */}
                         <div>
-                          <h4 className="text-xs text-gray-500 mb-2 font-semibold">📈 수익률</h4>
+                          <h4 className="text-xs text-gray-500 mb-2 font-semibold">📈 과거 수익률 (실제 기간별 등락)</h4>
                           <div className="space-y-1">
                             <div className="flex justify-between">
-                              <span className="text-gray-400">1M</span>
+                              <span className="text-gray-400">최근 1개월</span>
                               <span className={returnColor(etf.profile.returns.month1)}>
-                                {formatNum(etf.profile.returns.month1)}%
+                                {etf.profile.returns.month1 != null ? (etf.profile.returns.month1 >= 0 ? '+' : '') : ''}{formatNum(etf.profile.returns.month1)}%
                               </span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-400">3M</span>
+                              <span className="text-gray-400">최근 3개월</span>
                               <span className={returnColor(etf.profile.returns.month3)}>
-                                {formatNum(etf.profile.returns.month3)}%
+                                {etf.profile.returns.month3 != null ? (etf.profile.returns.month3 >= 0 ? '+' : '') : ''}{formatNum(etf.profile.returns.month3)}%
                               </span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-400">6M</span>
+                              <span className="text-gray-400">최근 6개월</span>
                               <span className={returnColor(etf.profile.returns.month6)}>
-                                {formatNum(etf.profile.returns.month6)}%
+                                {etf.profile.returns.month6 != null ? (etf.profile.returns.month6 >= 0 ? '+' : '') : ''}{formatNum(etf.profile.returns.month6)}%
                               </span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-400">1Y</span>
+                              <span className="text-gray-400">최근 1년</span>
                               <span className={returnColor(etf.profile.returns.year1)}>
-                                {formatNum(etf.profile.returns.year1)}%
+                                {etf.profile.returns.year1 != null ? (etf.profile.returns.year1 >= 0 ? '+' : '') : ''}{formatNum(etf.profile.returns.year1)}%
                               </span>
                             </div>
                             <div className="flex justify-between border-t border-gray-700 pt-1">
-                              <span className="text-gray-400">YTD</span>
+                              <span className="text-gray-400">올해 연초 이후</span>
                               <span className={returnColor(etf.profile.returns.ytd)}>
-                                {formatNum(etf.profile.returns.ytd)}%
+                                {etf.profile.returns.ytd != null ? (etf.profile.returns.ytd >= 0 ? '+' : '') : ''}{formatNum(etf.profile.returns.ytd)}%
                               </span>
                             </div>
                           </div>
@@ -369,18 +369,18 @@ export default function ETFPage() {
 
                         {/* 효율성 */}
                         <div>
-                          <h4 className="text-xs text-gray-500 mb-2 font-semibold">⚡ 효율성</h4>
+                          <h4 className="text-xs text-gray-500 mb-2 font-semibold">⚡ ETF 효율성 (낮은 비용 = 좋음)</h4>
                           <div className="space-y-1">
                             <div className="flex justify-between">
-                              <span className="text-gray-400">비용비율</span>
+                              <span className="text-gray-400">연간 운용비용</span>
                               <span>{etf.profile.expenseRatio != null ? `${etf.profile.expenseRatio.toFixed(2)}%` : '-'}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-400">AUM</span>
+                              <span className="text-gray-400">운용규모(AUM)</span>
                               <span>{formatAUM(etf.profile.aum)}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-400">배당률</span>
+                              <span className="text-gray-400">배당수익률</span>
                               <span className="text-yellow-400">
                                 {etf.profile.dividendYield != null ? `${etf.profile.dividendYield.toFixed(2)}%` : '-'}
                               </span>
@@ -390,19 +390,19 @@ export default function ETFPage() {
 
                         {/* 52주 범위 */}
                         <div>
-                          <h4 className="text-xs text-gray-500 mb-2 font-semibold">📊 52주 범위</h4>
+                          <h4 className="text-xs text-gray-500 mb-2 font-semibold">📊 52주 가격 범위 (1년간 최저~최고)</h4>
                           <div className="space-y-1">
                             <div className="flex justify-between">
-                              <span className="text-gray-400">최저</span>
+                              <span className="text-gray-400">52주 최저가</span>
                               <span>${etf.profile.fiftyTwoWeekLow.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-400">최고</span>
+                              <span className="text-gray-400">52주 최고가</span>
                               <span>${etf.profile.fiftyTwoWeekHigh.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-400">위치</span>
-                              <span>{etf.profile.fiftyTwoWeekRange.toFixed(0)}%</span>
+                              <span className="text-gray-400">현재 위치</span>
+                              <span>{etf.profile.fiftyTwoWeekRange.toFixed(0)}% <span className="text-gray-600">(0%=최저, 100%=최고)</span></span>
                             </div>
                             {/* 범위 바 */}
                             <div className="h-2 bg-gray-700 rounded-full overflow-hidden mt-1 relative">
@@ -416,23 +416,23 @@ export default function ETFPage() {
 
                         {/* 점수 상세 */}
                         <div>
-                          <h4 className="text-xs text-gray-500 mb-2 font-semibold">🎯 점수 상세</h4>
+                          <h4 className="text-xs text-gray-500 mb-2 font-semibold">🎯 점수 상세 (점수 높을수록 좋음)</h4>
                           <div className="space-y-1">
                             <div className="flex justify-between">
-                              <span className="text-gray-400">차트</span>
-                              <span>{etf.chartScore}/25</span>
+                              <span className="text-gray-400">차트 분석</span>
+                              <span>{etf.chartScore}/25점</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-400">효율</span>
-                              <span>{etf.efficiencyScore}/20</span>
+                              <span className="text-gray-400">효율성</span>
+                              <span>{etf.efficiencyScore}/20점</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-400">모멘텀</span>
-                              <span>{etf.momentumScore}/25</span>
+                              <span className="text-gray-400">수익 모멘텀</span>
+                              <span>{etf.momentumScore}/25점</span>
                             </div>
                             <div className="flex justify-between border-t border-gray-700 pt-1 font-bold">
-                              <span>종합</span>
-                              <span>{etf.totalScore}/70</span>
+                              <span>종합 점수</span>
+                              <span>{etf.totalScore}/70점</span>
                             </div>
                           </div>
                         </div>

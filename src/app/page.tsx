@@ -77,15 +77,25 @@ interface MarketData {
 
 // ─── Constants ───────────────────────────────────────
 
-const VERDICT_STYLES: Record<Verdict, { bg: string; text: string; label: string; emoji: string }> = {
-  very_bullish: { bg: 'bg-green-600', text: 'text-white', label: '매수 관점 매우 유리', emoji: '🟢' },
-  bullish: { bg: 'bg-green-400', text: 'text-white', label: '매수 관점 유리', emoji: '🟡' },
-  neutral: { bg: 'bg-yellow-400', text: 'text-black', label: '중립', emoji: '⚪' },
-  bearish: { bg: 'bg-orange-400', text: 'text-white', label: '매도 관점 유리', emoji: '🟠' },
-  very_bearish: { bg: 'bg-red-600', text: 'text-white', label: '매도 관점 매우 유리', emoji: '🔴' },
+const VERDICT_STYLES: Record<Verdict, { bg: string; text: string; label: string; emoji: string; guide: string }> = {
+  very_bullish: { bg: 'bg-green-600', text: 'text-white', label: '강력 매수 신호', emoji: '🟢', guide: '시장 공포 + 저평가 구간으로, 매수 적기일 가능성이 높습니다' },
+  bullish: { bg: 'bg-green-400', text: 'text-white', label: '매수 긍정적', emoji: '🟡', guide: '전반적으로 매수에 유리한 조건입니다' },
+  neutral: { bg: 'bg-yellow-400', text: 'text-black', label: '중립 (관망)', emoji: '⚪', guide: '뚜렷한 매수·매도 신호가 없는 구간입니다' },
+  bearish: { bg: 'bg-orange-400', text: 'text-white', label: '매수 주의', emoji: '🟠', guide: '시장 과열 징후가 있어 신규 매수에 주의가 필요합니다' },
+  very_bearish: { bg: 'bg-red-600', text: 'text-white', label: '과열 경고', emoji: '🔴', guide: '시장이 과열 구간으로, 신규 매수를 자제하세요' },
 };
 
 const QUICK_TICKERS = ['AAPL', 'NVDA', 'MSFT', 'TSLA', 'AMZN', 'GOOGL', 'META', 'KO', 'JNJ'];
+
+// 점수 해석 함수: 점수를 사람이 이해할 수 있는 등급으로 변환
+function getScoreGrade(score: number, max: number): { label: string; color: string } {
+  const pct = (score / max) * 100;
+  if (pct >= 76) return { label: '매우 높음', color: 'text-green-400' };
+  if (pct >= 60) return { label: '높음', color: 'text-green-300' };
+  if (pct >= 40) return { label: '보통', color: 'text-yellow-400' };
+  if (pct >= 20) return { label: '낮음', color: 'text-orange-400' };
+  return { label: '매우 낮음', color: 'text-red-400' };
+}
 
 // ─── Helper Components ──────────────────────────────
 
@@ -103,7 +113,7 @@ function DataSourceBadge({ source }: { source?: DataSource }) {
           : 'bg-yellow-800/60 text-yellow-300'
       }`}
     >
-      {source === 'live' ? '실시간' : '추정'}
+      {source === 'live' ? '실시간 데이터' : '추정치 (실시간 불가)'}
     </span>
   );
 }
@@ -130,7 +140,7 @@ function ScoreBar({
           {source && <DataSourceBadge source={source} />}
         </span>
         <span className="font-bold text-white shrink-0">
-          {score}/{max}
+          {score}/{max}점
         </span>
       </div>
       <div className="w-full bg-gray-700 rounded-full h-3">
@@ -148,6 +158,7 @@ function GaugeCircle({ score, max, label }: { score: number; max: number; label:
   const circumference = 2 * Math.PI * 45;
   const offset = circumference - (pct / 100) * circumference;
   const color = pct > 70 ? '#22c55e' : pct > 40 ? '#eab308' : '#ef4444';
+  const grade = getScoreGrade(score, max);
 
   return (
     <div className="flex flex-col items-center">
@@ -168,9 +179,10 @@ function GaugeCircle({ score, max, label }: { score: number; max: number; label:
       </svg>
       <div className="-mt-[78px] text-center">
         <div className="text-2xl font-bold text-white">{score}</div>
-        <div className="text-xs text-gray-400">/ {max}</div>
+        <div className="text-xs text-gray-400">/ {max}점</div>
       </div>
       <div className="mt-6 text-sm font-medium text-gray-300">{label}</div>
+      <div className={`text-xs font-medium mt-1 ${grade.color}`}>{grade.label}</div>
     </div>
   );
 }
@@ -305,7 +317,7 @@ function ComparisonTable({ results }: { results: ScreenerResult[] }) {
         </thead>
         <tbody className="divide-y divide-gray-800">
           <tr>
-            <td className="py-2 px-2 text-gray-400">📈 차트 (25)</td>
+            <td className="py-2 px-2 text-gray-400">📈 차트 분석 (25점 만점)</td>
             {results.map((r) => (
               <td key={r.ticker} className="py-2 px-2 text-center font-bold text-white">
                 {r.chart.scores.total}
@@ -313,7 +325,7 @@ function ComparisonTable({ results }: { results: ScreenerResult[] }) {
             ))}
           </tr>
           <tr>
-            <td className="py-2 px-2 text-gray-400">💰 주가 (20)</td>
+            <td className="py-2 px-2 text-gray-400">💰 가치 평가 (20점 만점)</td>
             {results.map((r) => (
               <td key={r.ticker} className="py-2 px-2 text-center font-bold text-white">
                 {r.valuation.scores.total}
@@ -321,7 +333,7 @@ function ComparisonTable({ results }: { results: ScreenerResult[] }) {
             ))}
           </tr>
           <tr>
-            <td className="py-2 px-2 text-gray-400">🔄 역발상 (25)</td>
+            <td className="py-2 px-2 text-gray-400">🔄 시장 심리 (25점 만점)</td>
             {results.map((r) => (
               <td key={r.ticker} className="py-2 px-2 text-center font-bold text-white">
                 {r.sentiment.totalScore}
@@ -330,7 +342,7 @@ function ComparisonTable({ results }: { results: ScreenerResult[] }) {
           </tr>
           {results.some((r) => r.dividend) && (
             <tr>
-              <td className="py-2 px-2 text-gray-400">💎 배당 (20)</td>
+              <td className="py-2 px-2 text-gray-400">💎 배당 분석 (20점 만점)</td>
               {results.map((r) => (
                 <td key={r.ticker} className="py-2 px-2 text-center font-bold text-white">
                   {r.dividend?.totalScore ?? '-'}
@@ -339,7 +351,7 @@ function ComparisonTable({ results }: { results: ScreenerResult[] }) {
             </tr>
           )}
           <tr className="bg-gray-800/50">
-            <td className="py-3 px-2 text-white font-bold">총점 (70)</td>
+            <td className="py-3 px-2 text-white font-bold">종합 점수 (70점 만점)</td>
             {results.map((r) => {
               const v = VERDICT_STYLES[r.finalVerdict];
               return (
@@ -373,7 +385,7 @@ function ComparisonTable({ results }: { results: ScreenerResult[] }) {
             ))}
           </tr>
           <tr>
-            <td className="py-2 px-2 text-gray-400">상승여력</td>
+            <td className="py-2 px-2 text-gray-400">상승여력 (적정가 대비)</td>
             {results.map((r) => (
               <td
                 key={r.ticker}
@@ -402,9 +414,9 @@ function ComparisonTable({ results }: { results: ScreenerResult[] }) {
 
 function ComparisonChart({ results }: { results: ScreenerResult[] }) {
   const categories = [
-    { key: 'chart', label: '차트', max: 25, color: '#3b82f6' },
-    { key: 'valuation', label: '주가', max: 20, color: '#22c55e' },
-    { key: 'sentiment', label: '역발상', max: 25, color: '#f97316' },
+    { key: 'chart', label: '차트 분석', max: 25, color: '#3b82f6' },
+    { key: 'valuation', label: '가치 평가', max: 20, color: '#22c55e' },
+    { key: 'sentiment', label: '시장 심리', max: 25, color: '#f97316' },
   ] as const;
 
   const barWidth = 28;
@@ -530,7 +542,7 @@ function ComparisonChart({ results }: { results: ScreenerResult[] }) {
                   fontSize="12"
                   fontWeight="bold"
                 >
-                  총 {r.totalScore}/70
+                  종합 {r.totalScore}/70점
                 </text>
               </g>
             );
@@ -544,7 +556,7 @@ function ComparisonChart({ results }: { results: ScreenerResult[] }) {
               <g key={cat.key}>
                 <rect x={lx} y={ly - 8} width={12} height={12} fill={cat.color} rx={2} />
                 <text x={lx + 16} y={ly + 2} fill="#9ca3af" fontSize="10">
-                  {cat.label} (/{cat.max})
+                  {cat.label} ({cat.max}점 만점)
                 </text>
               </g>
             );
@@ -569,25 +581,41 @@ function SingleResultView({ result }: { result: ScreenerResult }) {
             <div className="text-xl sm:text-3xl font-bold">
               {v.emoji} {result.ticker} — {v.label}
             </div>
+            <div className="mt-1 text-sm opacity-80">{v.guide}</div>
             <div className="mt-2 text-sm sm:text-lg opacity-90">{result.actionGuide}</div>
           </div>
-          <div className="text-3xl sm:text-5xl font-bold shrink-0">
-            {result.totalScore}
-            <span className="text-lg sm:text-2xl">/70</span>
+          <div className="text-right shrink-0">
+            <div className="text-3xl sm:text-5xl font-bold">
+              {result.totalScore}
+              <span className="text-lg sm:text-2xl">/70점</span>
+            </div>
+            <div className="text-xs sm:text-sm opacity-75 mt-1">점수가 높을수록 매수에 유리</div>
           </div>
+        </div>
+      </div>
+
+      {/* 점수 해석 가이드 */}
+      <div className="bg-gray-900 rounded-xl p-4 text-sm">
+        <div className="text-xs text-gray-500 mb-2 font-medium">📖 점수 해석 가이드 (70점 만점 기준)</div>
+        <div className="flex flex-wrap gap-2 text-xs">
+          <span className="px-2 py-1 bg-green-600/20 text-green-400 rounded">🟢 53점 이상: 강력 매수 신호</span>
+          <span className="px-2 py-1 bg-green-400/20 text-green-300 rounded">🟡 42~52점: 매수 긍정적</span>
+          <span className="px-2 py-1 bg-yellow-400/20 text-yellow-400 rounded">⚪ 28~41점: 중립 (관망)</span>
+          <span className="px-2 py-1 bg-orange-400/20 text-orange-400 rounded">🟠 18~27점: 매수 주의</span>
+          <span className="px-2 py-1 bg-red-600/20 text-red-400 rounded">🔴 18점 미만: 과열 경고</span>
         </div>
       </div>
 
       {/* 3 Gauges */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
         <div className="bg-gray-900 rounded-xl p-4 sm:p-6 text-center">
-          <GaugeCircle score={result.chart.scores.total} max={25} label="📈 차트 판독기" />
+          <GaugeCircle score={result.chart.scores.total} max={25} label="📈 차트 분석 (기술적 추세)" />
         </div>
         <div className="bg-gray-900 rounded-xl p-4 sm:p-6 text-center">
-          <GaugeCircle score={result.valuation.scores.total} max={20} label="💰 주가 판독기" />
+          <GaugeCircle score={result.valuation.scores.total} max={20} label="💰 가치 평가 (적정가 분석)" />
         </div>
         <div className="bg-gray-900 rounded-xl p-4 sm:p-6 text-center">
-          <GaugeCircle score={result.sentiment.totalScore} max={25} label="🔄 역발상 판독기" />
+          <GaugeCircle score={result.sentiment.totalScore} max={25} label="🔄 시장 심리 (공포·탐욕 분석)" />
         </div>
       </div>
 
@@ -595,40 +623,42 @@ function SingleResultView({ result }: { result: ScreenerResult }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         {/* Chart Detail */}
         <div className="bg-gray-900 rounded-xl p-4 sm:p-6">
-          <h3 className="text-lg font-bold mb-4">📈 차트 판독기 상세</h3>
-          <ScoreBar label="이동평균선" score={result.chart.scores.ma} max={5} color="bg-blue-500" />
-          <ScoreBar label="이격도" score={result.chart.scores.deviation} max={5} color="bg-cyan-500" />
-          <ScoreBar label="RSI" score={result.chart.scores.rsi} max={5} color="bg-purple-500" />
-          <ScoreBar label="패턴" score={result.chart.scores.pattern} max={5} color="bg-pink-500" />
+          <h3 className="text-lg font-bold mb-1">📈 차트 분석 상세</h3>
+          <p className="text-xs text-gray-500 mb-4">주가 추세와 기술적 지표를 분석합니다. 각 항목 5점 만점.</p>
+          <ScoreBar label="이동평균선 (추세 방향)" score={result.chart.scores.ma} max={5} color="bg-blue-500" />
+          <ScoreBar label="이격도 (평균 대비 괴리)" score={result.chart.scores.deviation} max={5} color="bg-cyan-500" />
+          <ScoreBar label="RSI (과매수·과매도)" score={result.chart.scores.rsi} max={5} color="bg-purple-500" />
+          <ScoreBar label="차트 패턴 (W·M형)" score={result.chart.scores.pattern} max={5} color="bg-pink-500" />
           <ScoreBar
-            label="시장 폭 (MA 상회 비율)"
+            label="시장 폭 (상승 종목 비율)"
             score={result.chart.scores.breadth || 0}
             max={5}
             color="bg-emerald-500"
           />
           <div className="mt-4 p-3 bg-gray-800 rounded-lg text-sm space-y-1">
             <p>
-              MA 상태: <span className="font-bold">{result.chart.signals.maStatus}</span>
+              이동평균 상태: <span className="font-bold">{result.chart.signals.maStatus}</span>
             </p>
             <p>
-              이격도: <span className="font-bold">{result.chart.signals.deviationPct}%</span>
+              200일 평균 대비 이격도: <span className="font-bold">{result.chart.signals.deviationPct}%</span>
             </p>
             <p>
-              RSI: <span className="font-bold">{result.chart.signals.rsiLevel}</span>
+              RSI 구간: <span className="font-bold">{result.chart.signals.rsiLevel}</span>
             </p>
           </div>
         </div>
 
         {/* Valuation Detail */}
         <div className="bg-gray-900 rounded-xl p-4 sm:p-6">
-          <h3 className="text-lg font-bold mb-4">💰 주가 판독기 상세</h3>
-          <ScoreBar label="PER (vs 시장)" score={result.valuation.scores.pe} max={5} color="bg-blue-500" />
-          <ScoreBar label="적정주가 대비" score={result.valuation.scores.fairPrice} max={5} color="bg-green-500" />
-          <ScoreBar label="PEG" score={result.valuation.scores.peg} max={5} color="bg-purple-500" />
-          <ScoreBar label="시장 PER 수준" score={result.valuation.scores.marketPe} max={5} color="bg-cyan-500" />
+          <h3 className="text-lg font-bold mb-1">💰 가치 평가 상세</h3>
+          <p className="text-xs text-gray-500 mb-4">현재 주가가 적정 수준인지 PER·PEG 기반으로 분석합니다. 각 항목 5점 만점.</p>
+          <ScoreBar label="PER (주가수익비율 vs 시장)" score={result.valuation.scores.pe} max={5} color="bg-blue-500" />
+          <ScoreBar label="적정주가 대비 현재가" score={result.valuation.scores.fairPrice} max={5} color="bg-green-500" />
+          <ScoreBar label="PEG (성장성 대비 가격)" score={result.valuation.scores.peg} max={5} color="bg-purple-500" />
+          <ScoreBar label="시장 전체 PER 수준" score={result.valuation.scores.marketPe} max={5} color="bg-cyan-500" />
           <div className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between p-2.5 bg-gray-800 rounded">
-              <span className="text-gray-400">적정주가 범위</span>
+              <span className="text-gray-400">추정 적정주가 범위</span>
               <span className="font-bold text-green-400">
                 ${result.valuation.fairPriceRange?.low || result.valuation.fairPrice} ~ $
                 {result.valuation.fairPriceRange?.high || result.valuation.fairPrice}
@@ -641,7 +671,7 @@ function SingleResultView({ result }: { result: ScreenerResult }) {
               </span>
             </div>
             <div className="flex justify-between p-2.5 bg-gray-800 rounded">
-              <span className="text-gray-400">상승여력</span>
+              <span className="text-gray-400">상승여력 (적정가 대비)</span>
               <span
                 className={`font-bold ${
                   result.valuation.upsideDownside > 0 ? 'text-green-400' : 'text-red-400'
@@ -652,45 +682,49 @@ function SingleResultView({ result }: { result: ScreenerResult }) {
               </span>
             </div>
             <div className="flex justify-between p-2.5 bg-gray-800 rounded">
-              <span className="text-gray-400">PEG</span>
+              <span className="text-gray-400">PEG (1 미만=저평가)</span>
               <span className="font-bold text-white">{result.valuation.peg}</span>
+            </div>
+            <div className="p-2.5 bg-gray-800/50 rounded text-xs text-gray-500">
+              💡 적정주가는 과거 실적·PER·시장 평균을 기반으로 산출된 추정치이며, 실제 미래 가격을 보장하지 않습니다.
             </div>
           </div>
         </div>
 
         {/* Sentiment Detail */}
         <div className="bg-gray-900 rounded-xl p-4 sm:p-6">
-          <h3 className="text-lg font-bold mb-4">🔄 역발상 판독기 상세</h3>
+          <h3 className="text-lg font-bold mb-1">🔄 시장 심리 분석 상세</h3>
+          <p className="text-xs text-gray-500 mb-4">시장 공포·탐욕 수준을 분석합니다. 점수가 높을수록 시장이 공포 구간(= 매수 기회)입니다.</p>
           <ScoreBar
-            label="VIX (공포지수)"
+            label="VIX 공포지수 (높으면 공포)"
             score={result.sentiment.vix.score}
             max={5}
             color="bg-red-500"
             source={result.dataSources?.vix}
           />
           <ScoreBar
-            label="Put/Call Ratio"
+            label="풋/콜 비율 (높으면 비관)"
             score={result.sentiment.putCallRatio.score}
             max={5}
             color="bg-orange-500"
             source={result.dataSources?.putCallRatio}
           />
           <ScoreBar
-            label="AAII 심리"
+            label="개인투자자 심리 (AAII)"
             score={result.sentiment.aaii.score}
             max={5}
             color="bg-yellow-500"
             source={result.dataSources?.aaii}
           />
           <ScoreBar
-            label="신용잔고(Margin)"
+            label="신용잔고 (높으면 과열)"
             score={result.sentiment.marginDebt.score}
             max={5}
             color="bg-amber-500"
             source={result.dataSources?.marginDebt}
           />
           <ScoreBar
-            label="하이일드 스프레드"
+            label="하이일드 스프레드 (위험 선호도)"
             score={result.sentiment.hySpread.score}
             max={5}
             color="bg-rose-500"
@@ -698,13 +732,16 @@ function SingleResultView({ result }: { result: ScreenerResult }) {
           />
           <div className="mt-4 p-3 bg-gray-800 rounded-lg text-sm space-y-1">
             <p>
-              VIX: <span className="font-bold">{result.sentiment.vix.current}</span>
+              VIX 지수: <span className="font-bold">{result.sentiment.vix.current}</span>
+              <span className="text-gray-500 ml-1">(20 이하=안정, 30 이상=공포)</span>
             </p>
             <p>
-              P/C Ratio: <span className="font-bold">{result.sentiment.putCallRatio.current}</span>
+              풋/콜 비율: <span className="font-bold">{result.sentiment.putCallRatio.current}</span>
+              <span className="text-gray-500 ml-1">(1 이상=비관적)</span>
             </p>
             <p>
-              AAII Spread: <span className="font-bold">{result.sentiment.aaii.spread.toFixed(1)}</span>
+              개인투자자 심리차: <span className="font-bold">{result.sentiment.aaii.spread.toFixed(1)}</span>
+              <span className="text-gray-500 ml-1">(음수=비관 우세)</span>
             </p>
           </div>
         </div>
@@ -716,25 +753,25 @@ function SingleResultView({ result }: { result: ScreenerResult }) {
           <h3 className="text-lg font-bold mb-4 flex items-center flex-wrap gap-2">
             💎 배당 분석
             {result.dividend.status === 'king' && (
-              <span className="text-yellow-400 text-base">👑 배당 왕족주</span>
+              <span className="text-yellow-400 text-base" title="50년 이상 연속 배당 증액">👑 배당 왕족주 (50년+)</span>
             )}
             {result.dividend.status === 'aristocrat' && (
-              <span className="text-blue-400 text-base">🏅 배당 귀족주</span>
+              <span className="text-blue-400 text-base" title="25년 이상 연속 배당 증액">🏅 배당 귀족주 (25년+)</span>
             )}
             {result.dividend.status === 'achiever' && (
-              <span className="text-purple-400 text-base">⭐ 배당 성취주</span>
+              <span className="text-purple-400 text-base" title="10년 이상 연속 배당 증액">⭐ 배당 성취주 (10년+)</span>
             )}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
             <div>
               <ScoreBar
-                label="배당수익률 (vs 평균)"
+                label="배당수익률 (시장 평균 대비)"
                 score={result.dividend.scores.yield}
                 max={5}
                 color="bg-green-500"
               />
               <ScoreBar
-                label="배당 안전성"
+                label="배당 안전성 (배당성향 기준)"
                 score={result.dividend.scores.safety}
                 max={5}
                 color="bg-blue-500"
@@ -742,13 +779,13 @@ function SingleResultView({ result }: { result: ScreenerResult }) {
             </div>
             <div>
               <ScoreBar
-                label="배당 성장률"
+                label="배당 성장률 (연평균)"
                 score={result.dividend.scores.growth}
                 max={5}
                 color="bg-purple-500"
               />
               <ScoreBar
-                label="연속 증액"
+                label="연속 증액 (매년 배당 인상)"
                 score={result.dividend.scores.streak}
                 max={5}
                 color="bg-yellow-500"
@@ -763,7 +800,7 @@ function SingleResultView({ result }: { result: ScreenerResult }) {
               </div>
             </div>
             <div className="p-3 bg-gray-800 rounded-lg text-sm text-center">
-              <div className="text-gray-400 mb-1">배당성향</div>
+              <div className="text-gray-400 mb-1">배당성향 (이익 중 배당 비율)</div>
               <div className="font-bold text-white text-lg">
                 {result.dividend.data.payoutRatio.toFixed(1)}%
               </div>
@@ -910,7 +947,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-lg sm:text-xl font-bold">📊 디킴의 투자분석 판독기</h1>
-            <p className="text-xs sm:text-sm text-gray-400">3종 판독기 기반 미국주식 분석 도구</p>
+            <p className="text-xs sm:text-sm text-gray-400">차트·가치·심리 3종 분석 기반 미국주식 매수 타이밍 도구</p>
           </div>
           {marketData && (
             <div className="hidden lg:flex items-center gap-1 text-xs text-gray-500">
@@ -1090,7 +1127,7 @@ export default function Home() {
           <div className="text-center py-16 sm:py-20 text-gray-500">
             <div className="text-5xl sm:text-6xl mb-4">📊</div>
             <h2 className="text-xl sm:text-2xl font-bold mb-2">종목을 검색해 보세요</h2>
-            <p className="text-sm sm:text-base">미국 주식 티커를 입력하면 3종 판독기가 자동으로 분석합니다</p>
+            <p className="text-sm sm:text-base">미국 주식 티커를 입력하면 차트·가치·심리 3가지 관점에서 자동 분석합니다</p>
             <p className="text-xs text-gray-600 mt-2">
               여러 종목을 쉼표로 구분하면 비교 분석도 가능합니다
             </p>
