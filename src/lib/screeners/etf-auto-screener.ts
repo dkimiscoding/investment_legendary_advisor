@@ -19,15 +19,20 @@ const log = createLogger('ETFAutoScreener');
 
 const ETF_SCREENING_CACHE_KEY = 'screening:etf';
 const ETF_SCREENING_TTL = 4 * 60 * 60 * 1000;
-const BATCH_SIZE = 3;
-const BATCH_DELAY_MS = 2000;
+// Edge Runtime 최적화: 더 큰 배치, 짧은 딜레이
+const BATCH_SIZE = 5;
+const BATCH_DELAY_MS = 500;
 
 const etfScreeningProgress = {
   isRunning: false,
   total: 0,
   completed: 0,
   lastRun: null as string | null,
+  startedAt: null as number | null,
 };
+
+// 5분 이상 진행 중이면 강제 리셋 (timeout 방지)
+const MAX_RUNNING_TIME = 5 * 60 * 1000;
 
 export interface ETFAnalysisResult {
   ticker: string;
@@ -72,48 +77,58 @@ export async function runETFScreening(): Promise<ETFScreeningReport> {
     return cached;
   }
 
-  if (etfScreeningProgress.isRunning) {
-    throw new Error('ETF 스크리닝이 이미 진행 중입니다');
+  // 5분 이상 실행 중이면 강제 리셋 (이전 요청이 끝나지 않은 경우)
+  if (etfScreeningProgress.isRunning && etfScreeningProgress.startedAt) {
+    const runningTime = Date.now() - etfScreeningProgress.startedAt;
+    if (runningTime > MAX_RUNNING_TIME) {
+      log.warn(`이전 스크리닝 ${Math.round(runningTime / 1000)}초 경과, 강제 리셋`);
+      etfScreeningProgress.isRunning = false;
+    } else {
+      throw new Error('ETF 스크리닝이 이미 진행 중입니다');
+    }
   }
 
   etfScreeningProgress.isRunning = true;
-  const allETFs = getAllETFs();
-  etfScreeningProgress.total = allETFs.length;
-  etfScreeningProgress.completed = 0;
+  etfScreeningProgress.startedAt = Date.now();
 
-  log.info(`ETF 스크리닝 시작: ${allETFs.length}개 ETF`);
+  try {
+    const allETFs = getAllETFs();
+    etfScreeningProgress.total = allETFs.length;
+    etfScreeningProgress.completed = 0;
 
-  const results: ETFAnalysisResult[] = [];
-  const breadth = await fetchMarketBreadth();
+    log.info(`ETF 스크리닝 시작: ${allETFs.length}개 ETF`);
 
-  // 배치 처리
-  for (let i = 0; i < allETFs.length; i += BATCH_SIZE) {
-    const batch = allETFs.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.allSettled(
-      batch.map(ticker => analyzeETF(ticker, breadth))
-    );
+    const results: ETFAnalysisResult[] = [];
+    const breadth = await fetchMarketBreadth();
 
-    for (const result of batchResults) {
-      if (result.status === 'fulfilled' && result.value) {
-        results.push(result.value);
+    // 배치 처리
+    for (let i = 0; i < allETFs.length; i += BATCH_SIZE) {
+      const batch = allETFs.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.allSettled(
+        batch.map(ticker => analyzeETF(ticker, breadth))
+      );
+
+      for (const result of batchResults) {
+        if (result.status === 'fulfilled' && result.value) {
+          results.push(result.value);
+        }
+      }
+
+      etfScreeningProgress.completed = Math.min(i + BATCH_SIZE, allETFs.length);
+
+      if (i + BATCH_SIZE < allETFs.length) {
+        await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
       }
     }
 
-    etfScreeningProgress.completed = Math.min(i + BATCH_SIZE, allETFs.length);
+    // 종합 점수순 정렬
+    results.sort((a, b) => b.totalScore - a.totalScore);
 
-    if (i + BATCH_SIZE < allETFs.length) {
-      await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
-    }
-  }
-
-  // 종합 점수순 정렬
-  results.sort((a, b) => b.totalScore - a.totalScore);
-
-  // 카테고리별 베스트
-  const sectorBest: Record<string, ETFAnalysisResult> = {};
-  for (const r of results) {
-    if (!sectorBest[r.category] || r.totalScore > sectorBest[r.category].totalScore) {
-      sectorBest[r.category] = r;
+    // 카테고리별 베스트
+    const sectorBest: Record<string, ETFAnalysisResult> = {};
+    for (const r of results) {
+      if (!sectorBest[r.category] || r.totalScore > sectorBest[r.category].totalScore) {
+        sectorBest[r.category] = r;
     }
   }
 
@@ -139,22 +154,42 @@ export async function runETFScreening(): Promise<ETFScreeningReport> {
     allResults: results,
   };
 
-  setCache(ETF_SCREENING_CACHE_KEY, report, ETF_SCREENING_TTL);
-  etfScreeningProgress.isRunning = false;
-  etfScreeningProgress.lastRun = report.timestamp;
-  log.info(`ETF 스크리닝 완료: ${results.length}개 분석`);
+    setCache(ETF_SCREENING_CACHE_KEY, report, ETF_SCREENING_TTL);
+    etfScreeningProgress.lastRun = report.timestamp;
+    log.info(`ETF 스크리닝 완료: ${results.length}개 분석`);
 
-  return report;
+    return report;
+  } finally {
+    etfScreeningProgress.isRunning = false;
+    etfScreeningProgress.startedAt = null;
+  }
 }
+
+// 개별 ETF 분석 타임아웃 (ms)
+const ANALYSIS_TIMEOUT = 8000;
 
 async function analyzeETF(
   ticker: string,
   breadth: MarketBreadthData
 ): Promise<ETFAnalysisResult | null> {
   try {
+    // 타임아웃 적용된 Promise
+    const chartPromise = fetchChartData(ticker);
+    const profilePromise = fetchETFProfile(ticker);
+    
     const [chartData, profile] = await Promise.all([
-      fetchChartData(ticker),
-      fetchETFProfile(ticker),
+      Promise.race([
+        chartPromise,
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Chart timeout')), ANALYSIS_TIMEOUT)
+        )
+      ]),
+      Promise.race([
+        profilePromise,
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Profile timeout')), ANALYSIS_TIMEOUT)
+        )
+      ])
     ]);
     chartData.marketBreadth = breadth;
 
