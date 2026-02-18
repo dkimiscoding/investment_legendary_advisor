@@ -85,11 +85,11 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const SENTIMENT_LABELS: Record<string, { label: string; color: string; action: string }> = {
-  extreme_fear: { label: '극도 공포', color: 'text-green-400', action: '→ 매수 기회 탐색 구간' },
-  fear: { label: '공포', color: 'text-green-300', action: '→ 매수에 유리한 환경' },
-  neutral: { label: '중립', color: 'text-yellow-400', action: '→ 관망 또는 선별 매수' },
-  greed: { label: '환호', color: 'text-orange-400', action: '→ 신규 매수 주의' },
-  extreme_greed: { label: '극도 환호', color: 'text-red-400', action: '→ 과열 경고, 매수 자제' },
+  extreme_fear: { label: '극도 공포', color: 'text-[#D4F94E]', action: '→ 매수 기회 탐색 구간' },
+  fear: { label: '공포', color: 'text-[#D4F94E]', action: '→ 매수에 유리한 환경' },
+  neutral: { label: '중립', color: 'text-white', action: '→ 관망 또는 선별 매수' },
+  greed: { label: '환호', color: 'text-[#C45C3E]', action: '→ 신규 매수 주의' },
+  extreme_greed: { label: '극도 환호', color: 'text-[#C45C3E]', action: '→ 과열 경고, 매수 자제' },
 };
 
 const SECTOR_LABELS: Record<string, string> = {
@@ -119,18 +119,18 @@ function getTimeAgo(timestamp: string): string {
 
 function getScoreColor(score: number, maxScore: number): string {
   const pct = (score / maxScore) * 100;
-  if (pct >= 70) return 'text-green-400';
-  if (pct >= 50) return 'text-yellow-400';
-  if (pct >= 30) return 'text-orange-400';
-  return 'text-red-400';
+  if (pct >= 70) return 'text-[#D4F94E]';
+  if (pct >= 50) return 'text-[#D4F94E]';
+  if (pct >= 30) return 'text-[#C45C3E]';
+  return 'text-[#C45C3E]';
 }
 
 function getScoreBgColor(score: number, maxScore: number): string {
   const pct = (score / maxScore) * 100;
-  if (pct >= 70) return 'bg-green-500';
-  if (pct >= 50) return 'bg-yellow-500';
-  if (pct >= 30) return 'bg-orange-500';
-  return 'bg-red-500';
+  if (pct >= 70) return 'bg-[#A8C93E]';
+  if (pct >= 50) return 'bg-[#F5F5F5]';
+  if (pct >= 30) return 'bg-[#C45C3E]';
+  return 'bg-[#A0452A]';
 }
 
 // ─── 컴포넌트: MiniScoreBar ─────────────────────────
@@ -140,8 +140,8 @@ function MiniScoreBar({ label, score, max, color }: { label: string; score: numb
   return (
     <div className="flex items-center gap-2 text-xs">
       <span className="text-gray-500 w-14 shrink-0">{label}</span>
-      <div className="flex-1 bg-gray-800 rounded-full h-1.5">
-        <div className={`${color} h-1.5 rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
+      <div className="flex-1 bg-[#2A2A2A] rounded-none h-1.5">
+        <div className={`${color} h-1.5 rounded-none transition-all duration-500`} style={{ width: `${pct}%` }} />
       </div>
       <span className="text-gray-400 w-10 text-right">{score}/{max}점</span>
     </div>
@@ -155,14 +155,14 @@ function StockCard({ result }: { result: ScreeningResult }) {
   const scoreColor = getScoreColor(result.totalScore, result.maxScore);
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 hover:border-gray-600 transition-all hover:shadow-lg hover:shadow-gray-900/50">
+    <div className="bg-[#3A3A3A] border border-[#1A1A1A] rounded-none border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] p-4 hover:border-[#D4F94E] transition-all hover:shadow-lg hover:shadow-gray-900/50">
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-bold text-white">{result.ticker}</h3>
             {result.isDividendAristocrat && (
-              <span className="text-xs bg-amber-900/50 text-amber-400 px-1.5 py-0.5 rounded-full font-medium">
+              <span className="text-xs bg-amber-900/50 text-amber-400 px-1.5 py-0.5 rounded-none font-medium">
                 👑 배당귀족
               </span>
             )}
@@ -182,7 +182,7 @@ function StockCard({ result }: { result: ScreeningResult }) {
           ${result.currentPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}
         </span>
         {result.changePercent !== 0 && (
-          <span className={`text-sm font-medium ${result.changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          <span className={`text-sm font-medium ${result.changePercent >= 0 ? 'text-[#D4F94E]' : 'text-[#C45C3E]'}`}>
             {result.changePercent >= 0 ? '+' : ''}{result.changePercent.toFixed(2)}%
           </span>
         )}
@@ -190,8 +190,8 @@ function StockCard({ result }: { result: ScreeningResult }) {
 
       {/* Mini Score Bars */}
       <div className="space-y-1.5 mb-3">
-        <MiniScoreBar label="차트 분석" score={result.chartScore} max={25} color="bg-blue-500" />
-        <MiniScoreBar label="가치 평가" score={result.valuationScore} max={20} color="bg-green-500" />
+        <MiniScoreBar label="차트 분석" score={result.chartScore} max={25} color="bg-[#A8C93E]" />
+        <MiniScoreBar label="가치 평가" score={result.valuationScore} max={20} color="bg-[#A8C93E]" />
         <MiniScoreBar label="시장 심리" score={result.sentimentScore} max={25} color="bg-purple-500" />
         {result.dividendScore !== null && (
           <MiniScoreBar label="배당 분석" score={result.dividendScore} max={20} color="bg-amber-500" />
@@ -202,7 +202,7 @@ function StockCard({ result }: { result: ScreeningResult }) {
       {result.highlights.length > 0 && (
         <div className="mb-3 space-y-1">
           {result.highlights.slice(0, 2).map((h, i) => (
-            <div key={i} className="text-xs text-gray-300 bg-gray-800/50 rounded px-2 py-1">
+            <div key={i} className="text-xs text-gray-300 bg-[#2A2A2A]/50 rounded px-2 py-1">
               {h}
             </div>
           ))}
@@ -214,7 +214,7 @@ function StockCard({ result }: { result: ScreeningResult }) {
         <span className="text-xs">{result.verdict}</span>
         <Link
           href={`/?ticker=${result.ticker}`}
-          className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
+          className="text-xs text-[#D4F94E] hover:text-blue-300 font-medium transition-colors"
         >
           상세 분석 →
         </Link>
@@ -227,22 +227,22 @@ function StockCard({ result }: { result: ScreeningResult }) {
 
 function SectorCard({ sector }: { sector: SectorRotation }) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+    <div className="bg-[#3A3A3A] border border-[#1A1A1A] rounded-none border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-bold text-white">
           {SECTOR_LABELS[sector.sector] || sector.sector}
         </h3>
         <div className={`text-xl font-bold ${
-          sector.avgScore >= 50 ? 'text-green-400' : sector.avgScore >= 35 ? 'text-yellow-400' : 'text-red-400'
+          sector.avgScore >= 50 ? 'text-[#D4F94E]' : sector.avgScore >= 35 ? 'text-[#D4F94E]' : 'text-[#C45C3E]'
         }`}>
           {sector.avgScore}%
         </div>
       </div>
 
       {/* Score Bar */}
-      <div className="w-full bg-gray-800 rounded-full h-2.5 mb-3">
+      <div className="w-full bg-[#2A2A2A] rounded-none h-2.5 mb-3">
         <div
-          className={`h-2.5 rounded-full transition-all duration-500 ${getScoreBgColor(sector.avgScore, 100)}`}
+          className={`h-2.5 rounded-none transition-all duration-500 ${getScoreBgColor(sector.avgScore, 100)}`}
           style={{ width: `${sector.avgScore}%` }}
         />
       </div>
@@ -254,7 +254,7 @@ function SectorCard({ sector }: { sector: SectorRotation }) {
           <Link
             key={ticker}
             href={`/?ticker=${ticker}`}
-            className="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-2 py-1 rounded transition-colors"
+            className="text-xs bg-[#2A2A2A] hover:bg-[#3A3A3A] text-gray-300 px-2 py-1 rounded transition-colors"
           >
             {ticker}
           </Link>
@@ -271,27 +271,27 @@ function MarketSummary({ summary }: { summary: DailyReport['marketSummary'] }) {
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
+      <div className="bg-[#3A3A3A] border border-[#1A1A1A] rounded-none border-2 border-[#1A1A1A] p-3">
         <div className="text-xs text-gray-500 mb-1">S&P 500 (미국 대표지수)</div>
         <div className="text-white font-bold">
           {summary.sp500.price > 0 ? summary.sp500.price.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'}
         </div>
         {summary.sp500.change !== 0 && (
-          <div className={`text-xs ${summary.sp500.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          <div className={`text-xs ${summary.sp500.change >= 0 ? 'text-[#D4F94E]' : 'text-[#C45C3E]'}`}>
             {summary.sp500.change >= 0 ? '+' : ''}{summary.sp500.change.toFixed(2)}%
           </div>
         )}
       </div>
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
+      <div className="bg-[#3A3A3A] border border-[#1A1A1A] rounded-none border-2 border-[#1A1A1A] p-3">
         <div className="text-xs text-gray-500 mb-1">VIX 공포지수 (높을수록 공포)</div>
         <div className="text-white font-bold">{summary.vix.value.toFixed(2)}</div>
         <div className="text-xs text-gray-400">{summary.vix.level}</div>
       </div>
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
+      <div className="bg-[#3A3A3A] border border-[#1A1A1A] rounded-none border-2 border-[#1A1A1A] p-3">
         <div className="text-xs text-gray-500 mb-1">미국 10년 국채금리</div>
         <div className="text-white font-bold">{summary.tenYearYield > 0 ? `${summary.tenYearYield.toFixed(2)}%` : '—'}</div>
       </div>
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
+      <div className="bg-[#3A3A3A] border border-[#1A1A1A] rounded-none border-2 border-[#1A1A1A] p-3">
         <div className="text-xs text-gray-500 mb-1">시장 심리 (공포·탐욕)</div>
         <div className={`font-bold ${sentiment.color}`}>{sentiment.label}</div>
         <div className="text-xs text-gray-500">{sentiment.action}</div>
@@ -308,9 +308,9 @@ function SkeletonGrid() {
       {/* Market Summary Skeleton */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-gray-900 border border-gray-800 rounded-lg p-3 animate-pulse">
-            <div className="w-16 h-3 bg-gray-800 rounded mb-2" />
-            <div className="w-24 h-5 bg-gray-800 rounded" />
+          <div key={i} className="bg-[#3A3A3A] border border-[#1A1A1A] rounded-none border-2 border-[#1A1A1A] p-3 animate-pulse">
+            <div className="w-16 h-3 bg-[#2A2A2A] rounded mb-2" />
+            <div className="w-24 h-5 bg-[#2A2A2A] rounded" />
           </div>
         ))}
       </div>
@@ -318,19 +318,19 @@ function SkeletonGrid() {
       {/* Cards Skeleton */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[1, 2, 3, 4, 5, 6].map(i => (
-          <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl p-4 animate-pulse">
+          <div key={i} className="bg-[#3A3A3A] border border-[#1A1A1A] rounded-none border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] p-4 animate-pulse">
             <div className="flex justify-between mb-3">
               <div>
-                <div className="w-16 h-5 bg-gray-800 rounded mb-1" />
-                <div className="w-24 h-3 bg-gray-800 rounded" />
+                <div className="w-16 h-5 bg-[#2A2A2A] rounded mb-1" />
+                <div className="w-24 h-3 bg-[#2A2A2A] rounded" />
               </div>
-              <div className="w-12 h-8 bg-gray-800 rounded" />
+              <div className="w-12 h-8 bg-[#2A2A2A] rounded" />
             </div>
-            <div className="w-20 h-4 bg-gray-800 rounded mb-3" />
+            <div className="w-20 h-4 bg-[#2A2A2A] rounded mb-3" />
             <div className="space-y-2">
-              <div className="w-full h-2 bg-gray-800 rounded" />
-              <div className="w-full h-2 bg-gray-800 rounded" />
-              <div className="w-full h-2 bg-gray-800 rounded" />
+              <div className="w-full h-2 bg-[#2A2A2A] rounded" />
+              <div className="w-full h-2 bg-[#2A2A2A] rounded" />
+              <div className="w-full h-2 bg-[#2A2A2A] rounded" />
             </div>
           </div>
         ))}
@@ -361,8 +361,8 @@ function LoadingProgress() {
         ~55개 종목을 분석하고 있습니다. 첫 실행 시 1-2분 소요될 수 있습니다.
       </p>
       <div className="max-w-xs mx-auto">
-        <div className="w-full bg-gray-800 rounded-full h-2">
-          <div className="bg-blue-500 h-2 rounded-full animate-pulse" style={{ width: '60%' }} />
+        <div className="w-full bg-[#2A2A2A] rounded-none h-2">
+          <div className="bg-[#A8C93E] h-2 rounded-none animate-pulse" style={{ width: '60%' }} />
         </div>
       </div>
     </div>
@@ -429,9 +429,9 @@ export default function DiscoverPage() {
   const results = getResultsForTab();
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white">
+    <main className="min-h-screen bg-[#2A2A2A] text-white">
       {/* Header */}
-      <header className="border-b border-gray-800 px-4 sm:px-6 py-4">
+      <header className="border-b border-[#1A1A1A] px-4 sm:px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-lg sm:text-xl font-bold">🔍 추천 종목 스크리너</h1>
@@ -447,7 +447,7 @@ export default function DiscoverPage() {
             <button
               onClick={() => fetchReport(true)}
               disabled={refreshing}
-              className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-800 disabled:opacity-50 rounded-lg text-sm transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 bg-[#D4F94E] text-[#1A1A1A] font-black hover:bg-[#A8C93E] disabled:bg-[#3A3A3A] disabled:text-gray-400 rounded-none border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_#1A1A1A] hover:shadow-[6px_6px_0px_0px_#1A1A1A] hover:translate-x-[-2px] hover:translate-y-[-2px] active:translate-x-[0px] active:translate-y-[0px] active:shadow-[2px_2px_0px_0px_#1A1A1A] text-sm transition-all flex items-center gap-1"
             >
               <span className={refreshing ? 'animate-spin' : ''}>🔄</span>
               <span className="hidden sm:inline">{refreshing ? '갱신중...' : '새로고침'}</span>
@@ -457,12 +457,12 @@ export default function DiscoverPage() {
       </header>
 
       {/* Navigation */}
-      <nav className="border-b border-gray-800 px-4 sm:px-6 py-2 bg-gray-900/50">
+      <nav className="border-b border-[#1A1A1A] px-4 sm:px-6 py-2 bg-[#3A3A3A]/50">
         <div className="max-w-7xl mx-auto flex gap-4 text-sm">
           <Link href="/" className="text-gray-400 hover:text-white transition-colors py-1">
             📊 종목 분석
           </Link>
-          <span className="text-blue-400 font-medium border-b-2 border-blue-400 py-1">
+          <span className="text-[#D4F94E] font-black border-b-2 border-[#D4F94E] py-1">
             🔍 추천 종목
           </span>
           <Link href="/etf" className="text-gray-400 hover:text-white transition-colors py-1">
@@ -474,9 +474,9 @@ export default function DiscoverPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {/* Error */}
         {error && (
-          <div className="p-4 bg-red-900/30 border border-red-700 rounded-lg mb-6 text-red-300">
+          <div className="p-4 bg-red-900/30 border border-red-700 rounded-none border-2 border-[#1A1A1A] mb-6 text-red-300">
             ❌ {error}
-            <button onClick={() => fetchReport()} className="ml-3 text-red-400 hover:text-red-300 underline text-sm">
+            <button onClick={() => fetchReport()} className="ml-3 text-[#C45C3E] hover:text-red-300 underline text-sm">
               다시 시도
             </button>
           </div>
@@ -501,10 +501,10 @@ export default function DiscoverPage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                  className={`px-3 py-2 rounded-none border-2 border-[#1A1A1A] text-sm font-black whitespace-nowrap transition-all shadow-[4px_4px_0px_0px_#1A1A1A] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_#1A1A1A] active:translate-x-[0px] active:translate-y-[0px] active:shadow-[2px_2px_0px_0px_#1A1A1A] ${
                     activeTab === tab.key
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                      : 'bg-gray-900 text-gray-400 hover:bg-gray-800 hover:text-gray-300'
+                      ? 'bg-[#D4F94E] text-[#1A1A1A] shadow-[4px_4px_0px_0px_#A8C93E]'
+                      : 'bg-[#3A3A3A] text-white hover:bg-[#2A2A2A]'
                   }`}
                 >
                   {tab.label}
@@ -550,7 +550,7 @@ export default function DiscoverPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-gray-800">
+                      <tr className="border-b border-[#1A1A1A]">
                         <th className="text-left py-2 px-3 text-gray-500 font-medium">#</th>
                         <th className="text-left py-2 px-3 text-gray-500 font-medium">종목</th>
                         <th className="text-right py-2 px-3 text-gray-500 font-medium">현재가</th>
@@ -565,10 +565,10 @@ export default function DiscoverPage() {
                     </thead>
                     <tbody>
                       {report.allResults.map((r, idx) => (
-                        <tr key={r.ticker} className="border-b border-gray-800/50 hover:bg-gray-900/50">
+                        <tr key={r.ticker} className="border-b border-[#1A1A1A]/50 hover:bg-[#3A3A3A]/50">
                           <td className="py-2 px-3 text-gray-600">{idx + 1}</td>
                           <td className="py-2 px-3">
-                            <Link href={`/?ticker=${r.ticker}`} className="hover:text-blue-400 transition-colors">
+                            <Link href={`/?ticker=${r.ticker}`} className="hover:text-[#D4F94E] transition-colors">
                               <span className="font-bold text-white">{r.ticker}</span>
                               <span className="text-gray-500 ml-1.5 text-xs">{r.name}</span>
                               {r.isDividendAristocrat && <span className="ml-1">👑</span>}
@@ -577,11 +577,11 @@ export default function DiscoverPage() {
                           <td className="py-2 px-3 text-right text-white">
                             ${r.currentPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                           </td>
-                          <td className={`py-2 px-3 text-right ${r.changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          <td className={`py-2 px-3 text-right ${r.changePercent >= 0 ? 'text-[#D4F94E]' : 'text-[#C45C3E]'}`}>
                             {r.changePercent !== 0 ? `${r.changePercent >= 0 ? '+' : ''}${r.changePercent.toFixed(2)}%` : '—'}
                           </td>
-                          <td className="py-2 px-3 text-right text-blue-400">{r.chartScore}/25점</td>
-                          <td className="py-2 px-3 text-right text-green-400">{r.valuationScore}/20점</td>
+                          <td className="py-2 px-3 text-right text-[#D4F94E]">{r.chartScore}/25점</td>
+                          <td className="py-2 px-3 text-right text-[#D4F94E]">{r.valuationScore}/20점</td>
                           <td className="py-2 px-3 text-right text-purple-400">{r.sentimentScore}/25점</td>
                           <td className="py-2 px-3 text-right text-amber-400">
                             {r.dividendScore !== null ? `${r.dividendScore}/20점` : '—'}
@@ -600,9 +600,9 @@ export default function DiscoverPage() {
 
             {/* Stats */}
             {report.stats.failedCount > 0 && (
-              <div className="mt-6 p-3 bg-yellow-900/20 border border-yellow-800/50 rounded-lg text-sm text-yellow-300">
+              <div className="mt-6 p-3 bg-yellow-900/20 border border-yellow-800/50 rounded-none border-2 border-[#1A1A1A] text-sm text-yellow-300">
                 ⚠️ {report.stats.failedCount}개 종목 분석 실패:
-                <span className="text-yellow-400 ml-1">{report.stats.failedTickers.join(', ')}</span>
+                <span className="text-[#D4F94E] ml-1">{report.stats.failedTickers.join(', ')}</span>
               </div>
             )}
           </>
@@ -610,7 +610,7 @@ export default function DiscoverPage() {
       </div>
 
       {/* Disclaimer Footer */}
-      <footer className="mt-8 border-t border-gray-800 pt-6 pb-8 text-center text-xs text-gray-500 px-4">
+      <footer className="mt-8 border-t border-[#1A1A1A] pt-6 pb-8 text-center text-xs text-gray-500 px-4">
         <p className="mb-2">⚠️ 본 서비스는 투자 자문이 아닌 정보 제공 목적의 분석 도구입니다.</p>
         <p className="mb-2">투자 판단의 모든 책임은 투자자 본인에게 있으며, 본 서비스의 분석 결과를 투자 권유로 해석해서는 안 됩니다.</p>
         <p>미국주식 투자 방법론을 기반으로 한 교육/학습 목적의 도구입니다.</p>

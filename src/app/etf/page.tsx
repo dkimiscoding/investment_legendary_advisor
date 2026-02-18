@@ -108,29 +108,29 @@ function formatAUM(aum: number | null): string {
 
 function returnColor(val: number | null): string {
   if (val == null) return 'text-gray-500';
-  if (val >= 5) return 'text-green-400';
+  if (val >= 5) return 'text-[#D4F94E]';
   if (val > 0) return 'text-green-300';
   if (val > -5) return 'text-red-300';
-  return 'text-red-400';
+  return 'text-[#C45C3E]';
 }
 
 function verdictBg(verdict: string): string {
   switch (verdict) {
-    case 'strong_opportunity': return 'bg-green-500/20 border-green-500/40';
-    case 'opportunity': return 'bg-blue-500/20 border-blue-500/40';
+    case 'strong_opportunity': return 'bg-[#A8C93E]/20 border-green-500/40';
+    case 'opportunity': return 'bg-[#A8C93E]/20 border-[#D4F94E]/40';
     case 'neutral': return 'bg-gray-500/20 border-gray-500/40';
-    case 'caution': return 'bg-yellow-500/20 border-yellow-500/40';
-    case 'avoid': return 'bg-red-500/20 border-red-500/40';
+    case 'caution': return 'bg-[#F5F5F5]/20 border-yellow-500/40';
+    case 'avoid': return 'bg-[#A0452A]/20 border-red-500/40';
     default: return 'bg-gray-500/20 border-gray-500/40';
   }
 }
 
 function scoreBar(score: number, max: number): string {
   const pct = (score / max) * 100;
-  if (pct >= 70) return 'bg-green-500';
-  if (pct >= 50) return 'bg-blue-500';
-  if (pct >= 30) return 'bg-yellow-500';
-  return 'bg-red-500';
+  if (pct >= 70) return 'bg-[#A8C93E]';
+  if (pct >= 50) return 'bg-[#A8C93E]';
+  if (pct >= 30) return 'bg-[#F5F5F5]';
+  return 'bg-[#A0452A]';
 }
 
 // ─── 메인 컴포넌트 ──────────────────────────────────
@@ -174,9 +174,9 @@ export default function ETFPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-[#2A2A2A] text-white">
       {/* 헤더 */}
-      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-[#1A1A1A] bg-[#3A3A3A]/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/" className="text-gray-400 hover:text-white text-sm">← 종목분석</Link>
@@ -187,7 +187,7 @@ export default function ETFPage() {
             <button
               onClick={fetchReport}
               disabled={loading}
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-sm disabled:opacity-50"
+              className="px-3 py-1.5 bg-[#D4F94E] text-[#1A1A1A] font-black hover:bg-[#A8C93E] disabled:bg-[#3A3A3A] disabled:text-gray-400 rounded-none border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_#1A1A1A] hover:shadow-[6px_6px_0px_0px_#1A1A1A] hover:translate-x-[-2px] hover:translate-y-[-2px] active:translate-x-[0px] active:translate-y-[0px] active:shadow-[2px_2px_0px_0px_#1A1A1A] text-sm transition-all"
             >
               {loading ? '분석 중...' : '🔄 새로고침'}
             </button>
@@ -206,9 +206,9 @@ export default function ETFPage() {
 
         {/* 에러 */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-6">
-            <p className="text-red-400">{error}</p>
-            <button onClick={fetchReport} className="mt-2 text-sm text-blue-400 hover:text-blue-300">
+          <div className="bg-[#A0452A]/10 border border-red-500/30 rounded-none border-2 border-[#1A1A1A] p-4 mb-6">
+            <p className="text-[#C45C3E]">{error}</p>
+            <button onClick={fetchReport} className="mt-2 text-sm text-[#D4F94E] hover:text-blue-300">
               다시 시도
             </button>
           </div>
@@ -218,21 +218,21 @@ export default function ETFPage() {
           <>
             {/* 요약 카드 */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-              <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold text-blue-400">{report.totalAnalyzed}</div>
+              <div className="bg-[#3A3A3A] border border-[#1A1A1A] rounded-none border-2 border-[#1A1A1A] p-3 text-center">
+                <div className="text-2xl font-bold text-[#D4F94E]">{report.totalAnalyzed}</div>
                 <div className="text-xs text-gray-500">분석 ETF</div>
               </div>
-              <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold text-green-400">
+              <div className="bg-[#3A3A3A] border border-[#1A1A1A] rounded-none border-2 border-[#1A1A1A] p-3 text-center">
+                <div className="text-2xl font-bold text-[#D4F94E]">
                   {report.allResults.filter(r => r.verdict === 'strong_opportunity' || r.verdict === 'opportunity').length}
                 </div>
                 <div className="text-xs text-gray-500">기회 ETF</div>
               </div>
-              <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold text-yellow-400">{report.topPicks[0]?.ticker || '-'}</div>
+              <div className="bg-[#3A3A3A] border border-[#1A1A1A] rounded-none border-2 border-[#1A1A1A] p-3 text-center">
+                <div className="text-2xl font-bold text-[#D4F94E]">{report.topPicks[0]?.ticker || '-'}</div>
                 <div className="text-xs text-gray-500">1위 ETF</div>
               </div>
-              <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 text-center">
+              <div className="bg-[#3A3A3A] border border-[#1A1A1A] rounded-none border-2 border-[#1A1A1A] p-3 text-center">
                 <div className="text-2xl font-bold text-purple-400">{report.topPicks[0]?.totalScore || 0}/70점</div>
                 <div className="text-xs text-gray-500">최고 점수 (70점 만점)</div>
               </div>
@@ -244,10 +244,10 @@ export default function ETFPage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`px-3 py-2 rounded-lg text-sm whitespace-nowrap transition-colors ${
+                  className={`px-3 py-2 rounded-none border-2 border-[#1A1A1A] text-sm font-black whitespace-nowrap transition-all shadow-[4px_4px_0px_0px_#1A1A1A] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_#1A1A1A] active:translate-x-[0px] active:translate-y-[0px] active:shadow-[2px_2px_0px_0px_#1A1A1A] ${
                     activeTab === tab.key
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      ? 'bg-[#D4F94E] text-[#1A1A1A] shadow-[4px_4px_0px_0px_#A8C93E]'
+                      : 'bg-[#2A2A2A] text-white hover:bg-[#3A3A3A]'
                   }`}
                 >
                   {tab.label}
@@ -265,7 +265,7 @@ export default function ETFPage() {
               {getTabData().map((etf, idx) => (
                 <div
                   key={etf.ticker}
-                  className={`border rounded-lg overflow-hidden transition-colors ${verdictBg(etf.verdict)}`}
+                  className={`border rounded-none border-2 border-[#1A1A1A] overflow-hidden transition-colors ${verdictBg(etf.verdict)}`}
                 >
                   {/* 메인 행 */}
                   <button
@@ -279,14 +279,14 @@ export default function ETFPage() {
                           <div className="font-bold">{etf.ticker}</div>
                           <div className="text-xs text-gray-400">{etf.name}</div>
                         </div>
-                        <span className="text-xs px-2 py-0.5 bg-gray-700/50 rounded">
+                        <span className="text-xs px-2 py-0.5 bg-[#3A3A3A]/50 rounded">
                           {CATEGORY_LABELS[etf.category] || etf.category}
                         </span>
                       </div>
                       <div className="flex items-center gap-4 text-right">
                         <div>
                           <div className="font-mono">${etf.price.toFixed(2)}</div>
-                          <div className={`text-xs ${etf.changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          <div className={`text-xs ${etf.changePercent >= 0 ? 'text-[#D4F94E]' : 'text-[#C45C3E]'}`}>
                             {etf.changePercent >= 0 ? '+' : ''}{etf.changePercent.toFixed(2)}%
                           </div>
                         </div>
@@ -303,24 +303,24 @@ export default function ETFPage() {
                         <div className="flex justify-between text-xs text-gray-500 mb-1">
                           <span>차트 분석</span><span>{etf.chartScore}/25점</span>
                         </div>
-                        <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${scoreBar(etf.chartScore, 25)}`} style={{ width: `${(etf.chartScore / 25) * 100}%` }} />
+                        <div className="h-1.5 bg-[#3A3A3A] rounded-none overflow-hidden">
+                          <div className={`h-full rounded-none ${scoreBar(etf.chartScore, 25)}`} style={{ width: `${(etf.chartScore / 25) * 100}%` }} />
                         </div>
                       </div>
                       <div className="flex-1">
                         <div className="flex justify-between text-xs text-gray-500 mb-1">
                           <span>효율성</span><span>{etf.efficiencyScore}/20점</span>
                         </div>
-                        <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${scoreBar(etf.efficiencyScore, 20)}`} style={{ width: `${(etf.efficiencyScore / 20) * 100}%` }} />
+                        <div className="h-1.5 bg-[#3A3A3A] rounded-none overflow-hidden">
+                          <div className={`h-full rounded-none ${scoreBar(etf.efficiencyScore, 20)}`} style={{ width: `${(etf.efficiencyScore / 20) * 100}%` }} />
                         </div>
                       </div>
                       <div className="flex-1">
                         <div className="flex justify-between text-xs text-gray-500 mb-1">
                           <span>수익 모멘텀</span><span>{etf.momentumScore}/25점</span>
                         </div>
-                        <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${scoreBar(etf.momentumScore, 25)}`} style={{ width: `${(etf.momentumScore / 25) * 100}%` }} />
+                        <div className="h-1.5 bg-[#3A3A3A] rounded-none overflow-hidden">
+                          <div className={`h-full rounded-none ${scoreBar(etf.momentumScore, 25)}`} style={{ width: `${(etf.momentumScore / 25) * 100}%` }} />
                         </div>
                       </div>
                     </div>
@@ -328,7 +328,7 @@ export default function ETFPage() {
 
                   {/* 펼침 상세 */}
                   {expandedETF === etf.ticker && (
-                    <div className="border-t border-gray-700/50 p-4 bg-gray-900/50">
+                    <div className="border-t border-[#3A3A3A]/50 p-4 bg-[#3A3A3A]/50">
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                         {/* 수익률 */}
                         <div>
@@ -358,7 +358,7 @@ export default function ETFPage() {
                                 {etf.profile.returns.year1 != null ? (etf.profile.returns.year1 >= 0 ? '+' : '') : ''}{formatNum(etf.profile.returns.year1)}%
                               </span>
                             </div>
-                            <div className="flex justify-between border-t border-gray-700 pt-1">
+                            <div className="flex justify-between border-t border-[#3A3A3A] pt-1">
                               <span className="text-gray-400">올해 연초 이후</span>
                               <span className={returnColor(etf.profile.returns.ytd)}>
                                 {etf.profile.returns.ytd != null ? (etf.profile.returns.ytd >= 0 ? '+' : '') : ''}{formatNum(etf.profile.returns.ytd)}%
@@ -381,7 +381,7 @@ export default function ETFPage() {
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-400">배당수익률</span>
-                              <span className="text-yellow-400">
+                              <span className="text-[#D4F94E]">
                                 {etf.profile.dividendYield != null ? `${etf.profile.dividendYield.toFixed(2)}%` : '-'}
                               </span>
                             </div>
@@ -405,9 +405,9 @@ export default function ETFPage() {
                               <span>{etf.profile.fiftyTwoWeekRange.toFixed(0)}% <span className="text-gray-600">(0%=최저, 100%=최고)</span></span>
                             </div>
                             {/* 범위 바 */}
-                            <div className="h-2 bg-gray-700 rounded-full overflow-hidden mt-1 relative">
+                            <div className="h-2 bg-[#3A3A3A] rounded-none overflow-hidden mt-1 relative">
                               <div
-                                className="absolute h-full bg-blue-500 rounded-full"
+                                className="absolute h-full bg-[#A8C93E] rounded-none"
                                 style={{ width: `${etf.profile.fiftyTwoWeekRange}%` }}
                               />
                             </div>
@@ -430,7 +430,7 @@ export default function ETFPage() {
                               <span className="text-gray-400">수익 모멘텀</span>
                               <span>{etf.momentumScore}/25점</span>
                             </div>
-                            <div className="flex justify-between border-t border-gray-700 pt-1 font-bold">
+                            <div className="flex justify-between border-t border-[#3A3A3A] pt-1 font-bold">
                               <span>종합 점수</span>
                               <span>{etf.totalScore}/70점</span>
                             </div>
@@ -450,7 +450,7 @@ export default function ETFPage() {
             </div>
 
             {/* 면책 */}
-            <div className="mt-8 p-4 bg-gray-900/50 border border-gray-800 rounded-lg text-xs text-gray-500">
+            <div className="mt-8 p-4 bg-[#3A3A3A]/50 border border-[#1A1A1A] rounded-none border-2 border-[#1A1A1A] text-xs text-gray-500">
               <p>⚠️ 본 ETF 분석은 교육/학습 목적의 도구이며, 투자 자문이 아닙니다. 투자 결정은 본인의 판단과 책임 하에 이루어져야 합니다.</p>
               <p className="mt-1">분석 시각: {new Date(report.timestamp).toLocaleString('ko-KR')}</p>
             </div>
