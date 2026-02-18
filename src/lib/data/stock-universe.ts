@@ -224,7 +224,6 @@ export const SECTOR_MAP: Record<string, string> = {
   'MNDY': 'Technology', 'ASAN': 'Technology', 'WDAY': 'Technology',
 
   // Software (additional ones not in Technology)
-  'VEEV': 'Software',
 
   // Semiconductors (additional ones not in Technology)
 
@@ -265,7 +264,7 @@ export const SECTOR_MAP: Record<string, string> = {
   'GILD': 'Healthcare', 'VRTX': 'Healthcare', 'REGN': 'Healthcare',
   'BIIB': 'Healthcare', 'BDX': 'Healthcare', 'SYK': 'Healthcare',
   'ZTS': 'Healthcare', 'ISRG': 'Healthcare', 'DXCM': 'Healthcare',
-  'TDOC': 'Healthcare', 'VEEV': 'Healthcare',
+  'TDOC': 'Healthcare',
 
   // Financials
   'JPM': 'Financials', 'V': 'Financials', 'MA': 'Financials', 'GS': 'Financials',
