@@ -2,41 +2,118 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Museum Brutalism Color Profile */
 :root {
-  --background: #030712;
-  --foreground: #f9fafb;
+  /* Primary Colors */
+  --lime: #D4F94E;
+  --lime-dark: #A8C93E;
+  --lime-light: #E8FF85;
+  
+  /* Secondary Colors */
+  --white: #FFFFFF;
+  --off-white: #F5F5F5;
+  
+  /* Background Colors */
+  --charcoal: #2A2A2A;
+  --charcoal-light: #3A3A3A;
+  --charcoal-dark: #1A1A1A;
+  
+  /* Accent Colors */
+  --terracotta: #C45C3E;
+  --terracotta-dark: #A0452A;
+  --terracotta-light: #D97A5C;
+  
+  /* Semantic Colors */
+  --background: var(--charcoal);
+  --foreground: var(--white);
+  --primary: var(--lime);
+  --secondary: var(--white);
+  --accent: var(--terracotta);
+  --muted: #6B7280;
+  
+  /* Score Colors */
+  --score-high: var(--lime);
+  --score-medium: #F59E0B;
+  --score-low: var(--terracotta);
 }
 
+/* Base Styles */
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* 다크 테마 기본 - prefers-color-scheme 무시하고 항상 다크 */
+/* Always dark mode */
 html {
   color-scheme: dark;
 }
 
-/* 스크롤바 다크 테마 */
+/* Museum Brutalism Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1f2937;
+  background: var(--charcoal-dark);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4b5563;
-  border-radius: 4px;
+  background: var(--charcoal-light);
+  border: 3px solid var(--charcoal-dark);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
+  background: var(--lime);
 }
 
-/* 애니메이션 */
+/* Neo-Brutalism Shadow Utility */
+.brutal-shadow {
+  box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 0.5);
+}
+
+.brutal-shadow-sm {
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.4);
+}
+
+.brutal-shadow-lg {
+  box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 0.6);
+}
+
+.brutal-shadow-lime {
+  box-shadow: 6px 6px 0px 0px var(--lime-dark);
+}
+
+.brutal-shadow-terracotta {
+  box-shadow: 6px 6px 0px 0px var(--terracotta-dark);
+}
+
+/* Brutalism Border Utility */
+.brutal-border {
+  border: 3px solid var(--charcoal-light);
+}
+
+.brutal-border-lime {
+  border: 3px solid var(--lime);
+}
+
+.brutal-border-terracotta {
+  border: 3px solid var(--terracotta);
+}
+
+/* Hover Effects */
+.brutal-hover {
+  transition: all 0.2s ease;
+}
+
+.brutal-hover:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0px 0px var(--lime-dark);
+}
+
+/* Animations */
 @keyframes pulse-gentle {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
@@ -44,6 +121,189 @@ html {
 
 .animate-pulse-gentle {
   animation: pulse-gentle 2s ease-in-out infinite;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.5s ease-out;
+}
+
+/* Score Bar Colors */
+.score-bar-high {
+  background: linear-gradient(90deg, var(--lime-dark), var(--lime));
+}
+
+.score-bar-medium {
+  background: linear-gradient(90deg, #D97706, #F59E0B);
+}
+
+.score-bar-low {
+  background: linear-gradient(90deg, var(--terracotta-dark), var(--terracotta));
+}
+
+/* Verdict Badge Styles */
+.verdict-very-bullish {
+  background: var(--lime);
+  color: var(--charcoal-dark);
+  border: 3px solid var(--charcoal-dark);
+  box-shadow: 4px 4px 0px 0px var(--lime-dark);
+}
+
+.verdict-bullish {
+  background: var(--lime-light);
+  color: var(--charcoal-dark);
+  border: 3px solid var(--charcoal-dark);
+  box-shadow: 4px 4px 0px 0px var(--lime-dark);
+}
+
+.verdict-neutral {
+  background: var(--white);
+  color: var(--charcoal-dark);
+  border: 3px solid var(--charcoal-dark);
+  box-shadow: 4px 4px 0px 0px var(--charcoal-light);
+}
+
+.verdict-bearish {
+  background: #FED7AA;
+  color: var(--charcoal-dark);
+  border: 3px solid var(--charcoal-dark);
+  box-shadow: 4px 4px 0px 0px var(--terracotta);
+}
+
+.verdict-very-bearish {
+  background: var(--terracotta);
+  color: var(--white);
+  border: 3px solid var(--charcoal-dark);
+  box-shadow: 4px 4px 0px 0px var(--terracotta-dark);
+}
+
+/* Card Styles */
+.brutal-card {
+  background: var(--charcoal-light);
+  border: 3px solid var(--charcoal-dark);
+  box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 0.5);
+}
+
+.brutal-card-lime {
+  background: var(--charcoal);
+  border: 3px solid var(--lime);
+  box-shadow: 6px 6px 0px 0px var(--lime-dark);
+}
+
+/* Button Styles */
+.brutal-btn {
+  background: var(--lime);
+  color: var(--charcoal-dark);
+  border: 3px solid var(--charcoal-dark);
+  box-shadow: 4px 4px 0px 0px var(--charcoal-dark);
+  font-weight: bold;
+  transition: all 0.15s ease;
+}
+
+.brutal-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px 0px var(--charcoal-dark);
+}
+
+.brutal-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px var(--charcoal-dark);
+}
+
+.brutal-btn-secondary {
+  background: var(--white);
+  color: var(--charcoal-dark);
+  border: 3px solid var(--charcoal-dark);
+  box-shadow: 4px 4px 0px 0px var(--charcoal-dark);
+  font-weight: bold;
+  transition: all 0.15s ease;
+}
+
+.brutal-btn-secondary:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px 0px var(--charcoal-dark);
+}
+
+/* Typography */
+.brutal-heading {
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--lime);
+  text-shadow: 2px 2px 0px var(--charcoal-dark);
+}
+
+/* Input Styles */
+.brutal-input {
+  background: var(--charcoal-dark);
+  border: 3px solid var(--charcoal-light);
+  color: var(--white);
+  transition: all 0.2s ease;
+}
+
+.brutal-input:focus {
+  outline: none;
+  border-color: var(--lime);
+  box-shadow: 0 0 0 3px rgba(212, 249, 78, 0.2);
+}
+
+/* Progress Bar */
+.brutal-progress {
+  background: var(--charcoal-dark);
+  border: 2px solid var(--charcoal-light);
+  height: 12px;
+  overflow: hidden;
+}
+
+.brutal-progress-fill {
+  background: linear-gradient(90deg, var(--lime-dark), var(--lime));
+  border-right: 2px solid var(--charcoal-dark);
+}
+
+/* Gauge Circle */
+.gauge-circle-bg {
+  stroke: var(--charcoal-light);
+}
+
+.gauge-circle-fill {
+  stroke: var(--lime);
+  stroke-linecap: round;
+}
+
+/* Navigation Active */
+.nav-active {
+  color: var(--lime);
+  border-bottom: 3px solid var(--lime);
+}
+
+/* Table Styles */
+.brutal-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.brutal-table th {
+  background: var(--charcoal-dark);
+  border-bottom: 3px solid var(--lime);
+  color: var(--lime);
+  font-weight: bold;
+}
+
+.brutal-table td {
+  border-bottom: 2px solid var(--charcoal-light);
+}
+
+.brutal-table tr:hover td {
+  background: var(--charcoal-light);
 }
 
 @layer utilities {
