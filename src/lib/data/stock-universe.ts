@@ -189,7 +189,7 @@ export const STOCK_NAMES: Record<string, string> = {
   'MRO': 'Marathon Oil', 'DVN': 'Devon Energy',
 
   // 다우존스 특수
-  'DOW': 'Dow Inc', 'HON': 'Honeywell', 'IBM': 'IBM', 'TRV': 'Travelers',
+  'DOW': 'Dow Inc', 'IBM': 'IBM', 'TRV': 'Travelers',
 
   // 그 외
   'ADI': 'Analog Devices', 'ADP': 'Automatic Data Processing', 'AEP': 'American Electric Power',
