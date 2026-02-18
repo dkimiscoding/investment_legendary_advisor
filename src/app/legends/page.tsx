@@ -8,13 +8,13 @@ interface Legend {
   legendName: string;
   legendNickname: string;
   philosophy: string;
+  famousQuotes: string[];
   topPicks: {
     ticker: string;
     name: string;
     sector: string;
     score: number;
     matchReasons: string[];
-    metrics: any;
   }[];
   portfolio: {
     style: string;
@@ -247,6 +247,17 @@ function LegendDetail({ legend, color }: { legend: Legend; color: string }) {
           {LEGEND_ICONS[legend.legendId]} {legend.legendName}의 투자 철학
         </h2>
         <p className="text-lg text-white mb-4">{legend.philosophy}</p>
+        
+        {/* Famous Quotes */}
+        <div className="bg-[#2A2A2A] border-2 border-[#1A1A1A] p-4 rounded-none mb-4">
+          <h4 className="text-sm font-bold text-[#D4F94E] mb-3">📜 명언</h4>
+          <div className="space-y-2">
+            {legend.famousQuotes?.map((quote, i) => (
+              <p key={i} className="text-sm text-gray-300 italic">"{quote}"</p>
+            ))}
+          </div>
+        </div>
+        
         <div className="bg-[#2A2A2A] border-2 border-[#1A1A1A] p-4 rounded-none">
           <h4 className="text-sm font-bold text-[#D4F94E] mb-2">💬 현재 시장 진단</h4>
           <p className="text-sm text-gray-300">{legend.currentMarketCommentary}</p>

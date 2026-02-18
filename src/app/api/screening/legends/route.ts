@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LEGEND_STRATEGIES, calculateLegendScore } from '@/lib/data/legend-strategies';
 import { getAllTickers, STOCK_NAMES, getSector } from '@/lib/data/stock-universe';
-import { runBatchScreening } from '@/lib/screeners/auto-screener';
+import { runDailyScreening } from '@/lib/screeners/auto-screener';
 
 export const maxDuration = 300;
 
@@ -10,20 +10,13 @@ interface LegendRecommendation {
   legendName: string;
   legendNickname: string;
   philosophy: string;
+  famousQuotes: string[];
   topPicks: {
     ticker: string;
     name: string;
     sector: string;
     score: number;
     matchReasons: string[];
-    metrics: {
-      pe?: number;
-      pb?: number;
-      roe?: number;
-      dividendYield?: number;
-      debtToEquity?: number;
-      epsGrowth?: number;
-    };
   }[];
   portfolio: {
     style: string;
@@ -39,126 +32,49 @@ interface LegendRecommendation {
 }
 
 /**
- * 레전드별 추천 종목 생성
- */
-async function generateLegendRecommendations(): Promise<LegendRecommendation[]> {
-  const tickers = getAllTickers().slice(0, 50); // 상위 50종목만 분석 (성능 고려)
-  
-  // 배치 스크리닝 실행
-  const screeningResults = await runBatchScreening(tickers);
-  
-  const recommendations: LegendRecommendation[] = [];
-  
-  for (const strategy of LEGEND_STRATEGIES) {
-    // 각 레전드의 기준에 맞는 종목 필터링 및 점수 계산
-    const scoredStocks = tickers.map(ticker => {
-      const result = screeningResults[ticker];
-      if (!result) return null;
-      
-      const metrics = {
-        pe: result.valuation?.peRatio,
-        pb: result.valuation?.pbRatio,
-        roe: result.valuation?.roe,
-        dividendYield: result.dividend?.data?.dividendYield,
-        debtToEquity: result.valuation?.debtToEquity,
-        epsGrowth: result.valuation?.epsGrowth,
-      };
-      
-      // 레전드별 점수 계산
-      const score = calculateLegendScore(strategy.id, {
-        valuationScore: result.valuation?.scores?.total || 50,
-        qualityScore: (result.valuation?.scores?.pe || 50) + (result.valuation?.scores?.peg || 50) / 2,
-        growthScore: result.chart?.scores?.total || 50,
-        momentumScore: result.sentiment?.totalScore || 50,
-        dividendScore: result.dividend?.totalScore || 50,
-        stabilityScore: 100 - (result.sentiment?.vix?.score || 50),
-      });
-      
-      // 매치 이유 생성
-      const matchReasons = generateMatchReasons(strategy.id, result, metrics);
-      
-      return {
-        ticker,
-        name: STOCK_NAMES[ticker] || ticker,
-        sector: getSector(ticker),
-        score,
-        matchReasons,
-        metrics,
-      };
-    }).filter(Boolean).sort((a, b) => b!.score - a!.score);
-    
-    // 상위 10개 종목 선정
-    const topPicks = scoredStocks.slice(0, 10);
-    
-    // 포트폴리오 구성
-    const portfolio = generatePortfolioAllocation(strategy, topPicks);
-    
-    // 시장 코멘터리
-    const commentary = generateMarketCommentary(strategy.id);
-    
-    recommendations.push({
-      legendId: strategy.id,
-      legendName: strategy.name,
-      legendNickname: strategy.nickname,
-      philosophy: strategy.philosophy,
-      topPicks: topPicks as any,
-      portfolio,
-      currentMarketCommentary: commentary,
-    });
-  }
-  
-  return recommendations;
-}
-
-/**
  * 레전드별 매치 이유 생성
  */
 function generateMatchReasons(
   legendId: string,
-  result: any,
-  metrics: any
+  result: any
 ): string[] {
   const reasons: string[] = [];
   
   switch (legendId) {
     case 'buffett':
-      if (metrics.roe > 15) reasons.push('ROE 15% 이상 - 경쟁 우위');
-      if (metrics.debtToEquity < 0.5) reasons.push('낮은 부채비율 - 재무 건전');
-      if (metrics.dividendYield > 0.02) reasons.push('안정적 배당');
-      if (metrics.pe < 20) reasons.push('합리적 밸류에이션');
+      if (result.valuation?.scores?.total > 15) reasons.push('ROE 우수 - 경쟁 우위');
+      if (result.dividend?.totalScore > 15) reasons.push('안정적 배당');
+      if (result.valuation?.upsideDownside > 0) reasons.push('합리적 밸류에이션');
       break;
       
     case 'graham':
-      if (metrics.pe < 15) reasons.push('PER 15 이하 - 저평가');
-      if (metrics.pb < 1.5) reasons.push('PBR 1.5 이하 - 자산 기준 저평가');
-      if (metrics.dividendYield > 0.03) reasons.push('높은 배당수익률');
+      if (result.valuation?.scores?.total > 15) reasons.push('저평가 - 안전마진 확보');
+      if (result.valuation?.peRatio < 15) reasons.push('PER 15 이하');
       break;
       
     case 'lynch':
-      const peg = metrics.pe / (metrics.epsGrowth * 100);
-      if (peg < 1) reasons.push(`PEG ${peg.toFixed(2)} - 성장 대비 저평가`);
-      if (metrics.epsGrowth > 0.2) reasons.push('높은 성장률');
+      if (result.valuation?.peg < 1) reasons.push('PEG < 1 - 성장 대비 저평가');
+      if (result.chart?.scores?.total > 20) reasons.push('강한 기술적 모멘텀');
       break;
       
     case 'livermore':
-      if (result.chart?.scores?.total > 18) reasons.push('강한 기술적 모멘텀');
-      if (result.sentiment?.totalScore > 18) reasons.push('시장 심리 개선');
+      if (result.chart?.scores?.total > 20) reasons.push('강한 상승 추세');
+      if (result.sentiment?.totalScore > 20) reasons.push('시장 심리 개선');
       break;
       
     case 'templeton':
-      if (metrics.pb < 1) reasons.push('PBR 1 이하 - 깊은 저평가');
-      if (metrics.pe < 10) reasons.push('PER 10 이하 - 역발상 매수 대상');
+      if (result.valuation?.upsideDownside > 20) reasons.push('깊은 저평가 - 역발상 매수');
       break;
       
     case 'bogle':
-      if (['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA'].includes(result.ticker)) {
+      if (['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'].includes(result.ticker)) {
         reasons.push('시가총액 상위 - 시장 대표주');
       }
-      if (metrics.pe < 25) reasons.push('적정 수준의 밸류에이션');
+      if (result.valuation?.scores?.total > 10) reasons.push('적정 수준의 밸류에이션');
       break;
       
     case 'dalio':
-      if (metrics.dividendYield > 0.025) reasons.push('인플레이션 대응 배당');
+      if (result.dividend?.totalScore > 10) reasons.push('인플레이션 대응 배당');
       if (['Consumer Staples', 'Utilities', 'Healthcare'].includes(getSector(result.ticker))) {
         reasons.push('방어적 섹터 - 경기 민감도 낮음');
       }
@@ -273,7 +189,56 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const legendId = searchParams.get('legend');
     
-    const recommendations = await generateLegendRecommendations();
+    // 기존 스크리닝 데이터 활용
+    const screeningReport = await runDailyScreening(false);
+    
+    const recommendations: LegendRecommendation[] = [];
+    
+    for (const strategy of LEGEND_STRATEGIES) {
+      // 스크리닝 결과에서 레전드별 점수 계산
+      const scoredStocks = screeningReport.allResults.map((result: any) => {
+        // 레전드별 점수 계산
+        const score = calculateLegendScore(strategy.id, {
+          valuationScore: result.valuation?.scores?.total || 50,
+          qualityScore: (result.valuation?.scores?.pe || 50) + (result.valuation?.scores?.peg || 50) / 2,
+          growthScore: result.chart?.scores?.total || 50,
+          momentumScore: result.sentiment?.totalScore || 50,
+          dividendScore: result.dividend?.totalScore || 50,
+          stabilityScore: 100 - (result.sentiment?.vix?.score || 50),
+        });
+        
+        // 매치 이유 생성
+        const matchReasons = generateMatchReasons(strategy.id, result);
+        
+        return {
+          ticker: result.ticker,
+          name: STOCK_NAMES[result.ticker] || result.ticker,
+          sector: getSector(result.ticker),
+          score,
+          matchReasons,
+        };
+      }).sort((a, b) => b.score - a.score);
+      
+      // 상위 10개 종목 선정
+      const topPicks = scoredStocks.slice(0, 10);
+      
+      // 포트폴리오 구성
+      const portfolio = generatePortfolioAllocation(strategy, topPicks);
+      
+      // 시장 코멘터리
+      const commentary = generateMarketCommentary(strategy.id);
+      
+      recommendations.push({
+        legendId: strategy.id,
+        legendName: strategy.name,
+        legendNickname: strategy.nickname,
+        philosophy: strategy.philosophy,
+        famousQuotes: strategy.famousQuotes,
+        topPicks: topPicks as any,
+        portfolio,
+        currentMarketCommentary: commentary,
+      });
+    }
     
     // 특정 레전드만 요청한 경우
     if (legendId) {
