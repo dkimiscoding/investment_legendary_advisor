@@ -192,7 +192,7 @@ export const STOCK_NAMES: Record<string, string> = {
   'DOW': 'Dow Inc', 'IBM': 'IBM', 'TRV': 'Travelers',
 
   // 그 외
-  'ADI': 'Analog Devices', 'ADP': 'Automatic Data Processing', 'AEP': 'American Electric Power',
+  'ADI': 'Analog Devices', 'ADP': 'Automatic Data Processing',
   'APD': 'Air Products', 'WBA': 'Walgreens', 'SWK': 'Stanley Black & Decker',
   'PPG': 'PPG Industries', 'ADM': 'Archer-Daniels-Midland', 'BEN': 'Franklin Resources',
   'TROW': 'T. Rowe Price', 'CINF': 'Cincinnati Financial', 'AOS': 'A. O. Smith',
@@ -201,7 +201,7 @@ export const STOCK_NAMES: Record<string, string> = {
   'MKC': 'McCormick', 'ROP': 'Roper Technologies', 'AFL': 'Aflac',
   'EXPD': 'Expeditors', 'GRMN': 'Garmin', 'CLX': 'Clorox', 'FRT': 'Federal Realty',
   'FANG': 'Diamondback Energy', 'DXCM': 'Dexcom', 'WDAY': 'Workday',
-  'ORLY': "O'Reilly Automotive", 'MAR': 'Marriott', 'FTNT': 'Fortinet',
+  'ORLY': "O'Reilly Automotive", 'MAR': 'Marriott',
   'CFLT': 'Confluent', 'S': 'SentinelOne', 'MNDY': 'Monday.com', 'ASAN': 'Asana',
 };
 
@@ -223,17 +223,10 @@ export const SECTOR_MAP: Record<string, string> = {
   'ZM': 'Technology', 'TWLO': 'Technology', 'CFLT': 'Technology', 'S': 'Technology',
   'MNDY': 'Technology', 'ASAN': 'Technology', 'WDAY': 'Technology',
 
-  // Software
-  'MSFT': 'Software', 'ADBE': 'Software', 'INTU': 'Software', 'NOW': 'Software',
-  'VEEV': 'Software', 'SHOP': 'Software',
+  // Software (additional ones not in Technology)
+  'VEEV': 'Software',
 
-  // Semiconductors
-  'NVDA': 'Semiconductors', 'AMD': 'Semiconductors', 'AVGO': 'Semiconductors',
-  'QCOM': 'Semiconductors', 'INTC': 'Semiconductors', 'AMAT': 'Semiconductors',
-  'TXN': 'Semiconductors', 'MU': 'Semiconductors', 'LRCX': 'Semiconductors',
-  'KLAC': 'Semiconductors', 'SNPS': 'Semiconductors', 'CDNS': 'Semiconductors',
-  'ASML': 'Semiconductors', 'NXPI': 'Semiconductors', 'MRVL': 'Semiconductors',
-  'ADI': 'Semiconductors',
+  // Semiconductors (additional ones not in Technology)
 
   // Consumer Discretionary
   'AMZN': 'Consumer Discretionary', 'TSLA': 'Consumer Discretionary',
@@ -304,11 +297,9 @@ export const SECTOR_MAP: Record<string, string> = {
   'TRP': 'Energy', 'FANG': 'Energy', 'DVN': 'Energy', 'MRO': 'Energy',
   'SM': 'Energy', 'CTRA': 'Energy',
 
-  // Communications
-  'GOOGL': 'Communications', 'META': 'Communications', 'NFLX': 'Communications',
-  'DIS': 'Communications', 'CMCSA': 'Communications', 'VZ': 'Communications',
-  'T': 'Communications', 'TMUS': 'Communications', 'CHTR': 'Communications',
-  'FOX': 'Communications', 'SPOT': 'Communications', 'ROKU': 'Communications',
+  // Communications (additional ones not in Technology)
+  'VZ': 'Communications', 'T': 'Communications', 'TMUS': 'Communications', 'CHTR': 'Communications',
+  'FOX': 'Communications', 'SPOT': 'Communications',
   'TTWO': 'Communications', 'EA': 'Communications', 'ATVI': 'Communications',
 
   // Utilities
@@ -326,7 +317,7 @@ export const SECTOR_MAP: Record<string, string> = {
   'EXR': 'Real Estate', 'LSI': 'Real Estate', 'FRT': 'Real Estate',
 
   // Materials
-  'LIN': 'Materials', 'APD': 'Materials', 'SHW': 'Materials',
+  'LIN': 'Materials', 'SHW': 'Materials',
   'FCX': 'Materials', 'NEM': 'Materials', 'DOW': 'Materials',
   'DD': 'Materials', 'NUE': 'Materials', 'STLD': 'Materials',
   'VMC': 'Materials', 'MLM': 'Materials',
