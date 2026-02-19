@@ -32,8 +32,9 @@ const log = createLogger('AutoScreener');
 
 const SCREENING_CACHE_KEY = 'screening:daily';
 const SCREENING_TTL = 4 * 60 * 60 * 1000; // 4시간
-const BATCH_SIZE = 3;
-const BATCH_DELAY_MS = 2000;
+const BATCH_SIZE = 5;
+const BATCH_DELAY_MS = 300;
+const MAX_TICKERS = 50; // Vercel Hobby 10s 제한 대응: 상위 50종목만 스크리닝
 
 // 스크리닝 진행 상태 (인메모리)
 let screeningProgress = {
@@ -111,19 +112,30 @@ function generateHighlights(result: ScreeningResult): string[] {
 
 // ─── 개별 종목 분석 ──────────────────────────────────
 
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label} timeout (${ms}ms)`)), ms)),
+  ]);
+}
+
 async function analyzeOneTicker(
   ticker: string,
   sentimentResult: ReturnType<typeof calculateSentimentScore>,
   breadth: Awaited<ReturnType<typeof fetchMarketBreadth>>,
 ): Promise<ScreeningResult | null> {
   try {
-    // 데이터 수집 (개별 종목 데이터 + 가격 정보)
-    const [chartData, financialData, dividendData, quoteData] = await Promise.all([
-      fetchChartData(ticker),
-      fetchFinancialData(ticker),
-      fetchDividendData(ticker),
-      fetchQuotePrice(ticker),
-    ]);
+    // 데이터 수집 (개별 종목 데이터 + 가격 정보) — 개별 종목 3초 타임아웃
+    const [chartData, financialData, dividendData, quoteData] = await withTimeout(
+      Promise.all([
+        fetchChartData(ticker),
+        fetchFinancialData(ticker),
+        fetchDividendData(ticker),
+        fetchQuotePrice(ticker),
+      ]),
+      3000,
+      ticker,
+    );
 
     chartData.marketBreadth = breadth;
 
@@ -220,7 +232,7 @@ export async function runDailyScreening(forceRefresh: boolean = false): Promise<
   const startTime = Date.now();
 
   try {
-    const tickers = getAllTickers();
+    const tickers = getAllTickers().slice(0, MAX_TICKERS);
     screeningProgress.total = tickers.length;
 
     const allResults: ScreeningResult[] = [];
@@ -247,8 +259,18 @@ export async function runDailyScreening(forceRefresh: boolean = false): Promise<
       log.warn('시장 현황 수집 실패, VIX만 사용');
     }
 
-    // 3. 배치 처리
+    // 3. 배치 처리 (8초 하드 타임아웃 — Vercel Hobby 10초 제한 대응)
+    const HARD_TIMEOUT_MS = 8000;
+    let timedOut = false;
+
     for (let i = 0; i < tickers.length; i += BATCH_SIZE) {
+      // 시간 초과 체크 — 부분 결과로 진행
+      if (Date.now() - startTime > HARD_TIMEOUT_MS) {
+        log.warn(`⏱ 하드 타임아웃 (${HARD_TIMEOUT_MS}ms) 도달, ${allResults.length}/${tickers.length}개 완료 상태로 중단`);
+        timedOut = true;
+        break;
+      }
+
       const batch = tickers.slice(i, i + BATCH_SIZE);
       const batchNum = Math.floor(i / BATCH_SIZE) + 1;
       const totalBatches = Math.ceil(tickers.length / BATCH_SIZE);
@@ -367,8 +389,9 @@ export async function runDailyScreening(forceRefresh: boolean = false): Promise<
       updatedAt: new Date().toISOString(),
     };
 
-    // 캐시 저장
-    setCache(SCREENING_CACHE_KEY, report, SCREENING_TTL);
+    // 캐시 저장 (타임아웃 시 짧은 TTL로 다음 요청에서 재시도)
+    const cacheTTL = timedOut ? 5 * 60 * 1000 : SCREENING_TTL; // 타임아웃: 5분, 정상: 4시간
+    setCache(SCREENING_CACHE_KEY, report, cacheTTL);
 
     return report;
   } finally {
