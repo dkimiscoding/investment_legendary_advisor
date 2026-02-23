@@ -1,61 +1,71 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
-interface Legend {
-  legendId: string;
-  legendName: string;
-  legendNickname: string;
-  philosophy: string;
-  famousQuotes: string[];
-  topPicks: {
-    ticker: string;
-    name: string;
-    sector: string;
-    score: number;
-    matchReasons: string[];
-  }[];
-  portfolio: {
-    style: string;
-    holdingPeriod: string;
-    riskProfile: string;
-    recommendedAllocation: {
-      category: string;
-      percentage: number;
-      tickers: string[];
-    }[];
-  };
-  currentMarketCommentary: string;
+// ─── 타입 정의 ───────────────────────────────────────
+
+interface LegendKeyMetric {
+  label: string;
+  value: string;
+  isPositive: boolean;
 }
 
+interface LegendPick {
+  rank: number;
+  ticker: string;
+  name: string;
+  sector: string;
+  currentPrice: number;
+  changePercent: number;
+  score: number;
+  legendOpinion: string;
+  keyMetrics: LegendKeyMetric[];
+  reasons: string[];
+}
+
+interface LegendRecommendation {
+  legendId: string;
+  legendName: string;
+  legendNameEn: string;
+  legendNickname: string;
+  legendIcon: string;
+  legendColor: string;
+  philosophy: string;
+  famousQuote: string;
+  marketView: string;
+  investmentAdvice: string;
+  topPicks: LegendPick[];
+  portfolioStyle: string;
+  holdingPeriod: string;
+  riskProfile: string;
+}
+
+interface ConsensusStock {
+  ticker: string;
+  name: string;
+  sector: string;
+  recommendedBy: { legendId: string; legendName: string; legendIcon: string; score: number }[];
+  count: number;
+}
+
+interface LegendsResponse {
+  legends: LegendRecommendation[];
+  consensus: ConsensusStock[];
+  totalLegends: number;
+  marketSummary: {
+    vix: { value: number; level: string };
+    sentiment: string;
+    sp500Change: number;
+  };
+  updatedAt: string;
+}
+
+// ─── 상수 ────────────────────────────────────────────
+
 const LEGEND_COLORS: Record<string, string> = {
-  buffett: '#D4F94E',
-  graham: '#60A5FA',
-  lynch: '#F472B6',
-  livermore: '#F87171',
-  templeton: '#A78BFA',
-  simons: '#34D399',
-  bogle: '#94A3B8',
-  dalio: '#FB923C',
-};
-
-const LEGEND_ICONS: Record<string, string> = {
-  buffett: '🦉',
-  graham: '📚',
-  lynch: '🔍',
-  livermore: '📈',
-  templeton: '🌍',
-  simons: '🤖',
-  bogle: '⚖️',
-  dalio: '🌦️',
-};
-
-const HOLDING_PERIOD_KO: Record<string, string> = {
-  short: '단기 (1년 미만)',
-  medium: '중기 (1-3년)',
-  long: '장기 (3-10년)',
-  indefinite: '무기한',
+  buffett: '#D4F94E', graham: '#60A5FA', lynch: '#F472B6', livermore: '#F87171',
+  templeton: '#A78BFA', simons: '#34D399', bogle: '#94A3B8', dalio: '#FB923C',
 };
 
 const RISK_PROFILE_KO: Record<string, { label: string; color: string }> = {
@@ -64,36 +74,71 @@ const RISK_PROFILE_KO: Record<string, { label: string; color: string }> = {
   aggressive: { label: '공격적', color: '#EF4444' },
 };
 
+const SENTIMENT_KO: Record<string, string> = {
+  extreme_fear: '극도의 공포',
+  fear: '공포',
+  neutral: '중립',
+  greed: '탐욕',
+  extreme_greed: '극도의 탐욕',
+};
+
+const VIX_LEVEL_KO: Record<string, string> = {
+  low: '안정',
+  moderate: '보통',
+  elevated: '경계',
+  high: '공포',
+  extreme: '극도 공포',
+};
+
+// ─── 메인 컴포넌트 ──────────────────────────────────
+
 export default function LegendsPage() {
-  const [legends, setLegends] = useState<Legend[]>([]);
+  const [data, setData] = useState<LegendsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedLegend, setSelectedLegend] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('buffett');
 
-  useEffect(() => {
-    fetchLegends();
-  }, []);
-
-  const fetchLegends = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
+    setError('');
     try {
       const res = await fetch('/api/screening/legends');
       if (!res.ok) throw new Error('데이터를 불러오는데 실패했습니다');
-      const data = await res.json();
-      setLegends(data.legends);
-    } catch (err: any) {
-      setError(err.message);
+      const json: LegendsResponse = await res.json();
+      setData(json);
+      if (json.legends.length > 0 && !json.legends.find(l => l.legendId === activeTab)) {
+        setActiveTab(json.legends[0].legendId);
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : '알 수 없는 오류');
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#2A2A2A] text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="text-5xl mb-4 animate-pulse">🎯</div>
-          <p className="text-gray-400">투자 레전드들의 전략을 분석중...</p>
+          <div className="text-6xl mb-6 animate-bounce">🏆</div>
+          <p className="text-lg text-gray-400 mb-2">투자 레전드들의 전략을 분석중...</p>
+          <p className="text-sm text-gray-500">8명의 전설적 투자자가 현재 시장을 분석하고 있습니다</p>
+          <div className="mt-6 flex justify-center gap-2">
+            {['🦉', '📚', '🔍', '📈', '🌍', '🤖', '⚖️', '🌦️'].map((icon, i) => (
+              <span
+                key={i}
+                className="text-2xl animate-pulse"
+                style={{ animationDelay: `${i * 0.15}s` }}
+              >
+                {icon}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -102,11 +147,12 @@ export default function LegendsPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-[#2A2A2A] text-white flex items-center justify-center">
-        <div className="text-center text-red-400">
-          <p>{error}</p>
+        <div className="text-center">
+          <div className="text-5xl mb-4">⚠️</div>
+          <p className="text-red-400 mb-4">{error}</p>
           <button
-            onClick={fetchLegends}
-            className="mt-4 px-4 py-2 bg-[#D4F94E] text-[#1A1A1A] font-black rounded-none border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_#1A1A1A]"
+            onClick={fetchData}
+            className="px-6 py-3 bg-[#D4F94E] text-[#1A1A1A] font-black rounded-none border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_#1A1A1A] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_#1A1A1A] transition-all"
           >
             다시 시도
           </button>
@@ -115,257 +161,368 @@ export default function LegendsPage() {
     );
   }
 
+  if (!data) return null;
+
+  const activeLegend = data.legends.find(l => l.legendId === activeTab);
+
   return (
     <div className="min-h-screen bg-[#2A2A2A] text-white">
       {/* Header */}
       <header className="border-b-2 border-[#1A1A1A] px-4 sm:px-6 py-4 bg-[#3A3A3A]">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-4 mb-2">
-            <Link href="/" className="text-gray-400 hover:text-white text-sm">
+          <div className="flex items-center justify-between mb-2">
+            <Link href="/" className="text-gray-400 hover:text-white text-sm transition-colors">
               ← 홈
             </Link>
+            <button
+              onClick={fetchData}
+              className="text-xs px-3 py-1.5 bg-[#2A2A2A] text-gray-400 hover:text-[#D4F94E] border-2 border-[#1A1A1A] rounded-none shadow-[2px_2px_0px_0px_#1A1A1A] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_#1A1A1A] transition-all"
+            >
+              🔄 새로고침
+            </button>
           </div>
           <h1 className="text-2xl font-black text-[#D4F94E] drop-shadow-[2px_2px_0px_#1A1A1A]">
             🏆 투자 레전드 전략
           </h1>
           <p className="text-sm text-gray-400 mt-1">
-            세계 최고의 투자자들의 철학과 추천 포트폴리오
+            8명의 전설적 투자자들이 현재 시장에서 추천하는 종목
           </p>
+
+          {/* Market Summary Bar */}
+          <div className="mt-3 flex flex-wrap gap-3 text-xs">
+            <span className="px-2 py-1 bg-[#2A2A2A] border border-[#1A1A1A] rounded-none">
+              VIX <span className="font-bold text-[#D4F94E]">{data.marketSummary.vix.value.toFixed(1)}</span>
+              <span className="text-gray-500 ml-1">({VIX_LEVEL_KO[data.marketSummary.vix.level] || data.marketSummary.vix.level})</span>
+            </span>
+            <span className="px-2 py-1 bg-[#2A2A2A] border border-[#1A1A1A] rounded-none">
+              심리 <span className="font-bold text-[#D4F94E]">{SENTIMENT_KO[data.marketSummary.sentiment] || data.marketSummary.sentiment}</span>
+            </span>
+            <span className="px-2 py-1 bg-[#2A2A2A] border border-[#1A1A1A] rounded-none">
+              S&P500{' '}
+              <span className={`font-bold ${data.marketSummary.sp500Change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {data.marketSummary.sp500Change >= 0 ? '+' : ''}{data.marketSummary.sp500Change.toFixed(2)}%
+              </span>
+            </span>
+            <span className="px-2 py-1 bg-[#2A2A2A] border border-[#1A1A1A] rounded-none text-gray-500">
+              {new Date(data.updatedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 기준
+            </span>
+          </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        {/* Legend Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {legends.map((legend) => (
+        {/* Legend Tabs */}
+        <div className="mb-6 overflow-x-auto scrollbar-hide">
+          <div className="flex gap-2 min-w-max pb-2">
+            {data.legends.map((legend) => {
+              const isActive = activeTab === legend.legendId;
+              const color = LEGEND_COLORS[legend.legendId] || '#D4F94E';
+              return (
+                <button
+                  key={legend.legendId}
+                  onClick={() => setActiveTab(legend.legendId)}
+                  className={`flex items-center gap-2 px-4 py-2.5 border-2 rounded-none transition-all whitespace-nowrap ${
+                    isActive
+                      ? 'text-[#1A1A1A] font-black shadow-[4px_4px_0px_0px_#1A1A1A] translate-x-[-2px] translate-y-[-2px]'
+                      : 'bg-[#3A3A3A] text-gray-300 border-[#1A1A1A] hover:bg-[#2A2A2A] shadow-[2px_2px_0px_0px_#1A1A1A]'
+                  }`}
+                  style={{
+                    backgroundColor: isActive ? color : undefined,
+                    borderColor: isActive ? '#1A1A1A' : undefined,
+                  }}
+                >
+                  <span className="text-xl">{legend.legendIcon}</span>
+                  <span className="text-sm">{legend.legendName}</span>
+                </button>
+              );
+            })}
+            {/* Consensus Tab */}
             <button
-              key={legend.legendId}
-              onClick={() => setSelectedLegend(
-                selectedLegend === legend.legendId ? null : legend.legendId
-              )}
-              className={`p-4 border-2 border-[#1A1A1A] rounded-none text-left transition-all shadow-[4px_4px_0px_0px_#1A1A1A] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_#1A1A1A] ${
-                selectedLegend === legend.legendId
-                  ? 'bg-[#D4F94E] text-[#1A1A1A]'
-                  : 'bg-[#3A3A3A] text-white hover:bg-[#2A2A2A]'
+              onClick={() => setActiveTab('consensus')}
+              className={`flex items-center gap-2 px-4 py-2.5 border-2 rounded-none transition-all whitespace-nowrap ${
+                activeTab === 'consensus'
+                  ? 'bg-[#D4F94E] text-[#1A1A1A] font-black border-[#1A1A1A] shadow-[4px_4px_0px_0px_#1A1A1A] translate-x-[-2px] translate-y-[-2px]'
+                  : 'bg-[#3A3A3A] text-gray-300 border-[#1A1A1A] hover:bg-[#2A2A2A] shadow-[2px_2px_0px_0px_#1A1A1A]'
               }`}
-              style={{
-                borderColor: selectedLegend === legend.legendId ? '#1A1A1A' : LEGEND_COLORS[legend.legendId],
-              }}
             >
-              <div className="text-3xl mb-2">{LEGEND_ICONS[legend.legendId]}</div>
-              <h3 className="font-black text-lg">{legend.legendName}</h3>
-              <p className="text-sm opacity-75">{legend.legendNickname}</p>
-              <div className="mt-3 flex flex-wrap gap-1">
-                <span className="text-xs px-2 py-1 bg-[#1A1A1A]/20 rounded-none">
-                  {RISK_PROFILE_KO[legend.portfolio.riskProfile]?.label}
-                </span>
-                <span className="text-xs px-2 py-1 bg-[#1A1A1A]/20 rounded-none">
-                  {HOLDING_PERIOD_KO[legend.portfolio.holdingPeriod]}
-                </span>
-              </div>
+              <span className="text-xl">📊</span>
+              <span className="text-sm">컨센서스</span>
             </button>
-          ))}
+          </div>
         </div>
 
-        {/* Selected Legend Detail */}
-        {selectedLegend && (
-          <LegendDetail
-            legend={legends.find(l => l.legendId === selectedLegend)!}
-            color={LEGEND_COLORS[selectedLegend]}
-          />
-        )}
-
-        {/* Comparison Table */}
-        {!selectedLegend && (
-          <div className="bg-[#3A3A3A] border-2 border-[#1A1A1A] rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] p-6">
-            <h2 className="text-xl font-black text-[#D4F94E] mb-4">
-              📊 레전드 전략 비교
-            </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b-2 border-[#1A1A1A]">
-                    <th className="text-left py-2 px-3">레전드</th>
-                    <th className="text-left py-2 px-3">핵심 철학</th>
-                    <th className="text-center py-2 px-3">포트폴리오</th>
-                    <th className="text-center py-2 px-3">보유기간</th>
-                    <th className="text-center py-2 px-3">리스크</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#1A1A1A]">
-                  {legends.map((legend) => (
-                    <tr key={legend.legendId} className="hover:bg-[#2A2A2A]">
-                      <td className="py-3 px-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">{LEGEND_ICONS[legend.legendId]}</span>
-                          <div>
-                            <div className="font-bold">{legend.legendName}</div>
-                            <div className="text-xs text-gray-400">{legend.legendNickname}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-3 text-gray-300">
-                        {legend.philosophy.slice(0, 40)}...
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <span className="text-xs px-2 py-1 bg-[#1A1A1A] rounded-none">
-                          {legend.portfolio.style}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-center text-gray-300">
-                        {HOLDING_PERIOD_KO[legend.portfolio.holdingPeriod]}
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <span
-                          className="text-xs px-2 py-1 rounded-none"
-                          style={{
-                            backgroundColor: RISK_PROFILE_KO[legend.portfolio.riskProfile]?.color,
-                            color: '#1A1A1A',
-                          }}
-                        >
-                          {RISK_PROFILE_KO[legend.portfolio.riskProfile]?.label}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        {/* Content */}
+        {activeTab === 'consensus' ? (
+          <ConsensusSection consensus={data.consensus} />
+        ) : activeLegend ? (
+          <LegendDetail legend={activeLegend} />
+        ) : null}
       </main>
     </div>
   );
 }
 
-function LegendDetail({ legend, color }: { legend: Legend; color: string }) {
+// ─── Legend Detail 컴포넌트 ──────────────────────────
+
+function LegendDetail({ legend }: { legend: LegendRecommendation }) {
+  const color = LEGEND_COLORS[legend.legendId] || '#D4F94E';
+  const risk = RISK_PROFILE_KO[legend.riskProfile];
+
   return (
     <div className="space-y-6">
-      {/* Philosophy & Commentary */}
-      <div className="bg-[#3A3A3A] border-2 border-[#1A1A1A] rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] p-6">
-        <h2 className="text-xl font-black mb-4" style={{ color }}>
-          {LEGEND_ICONS[legend.legendId]} {legend.legendName}의 투자 철학
-        </h2>
-        <p className="text-lg text-white mb-4">{legend.philosophy}</p>
-        
-        {/* Famous Quotes */}
-        <div className="bg-[#2A2A2A] border-2 border-[#1A1A1A] p-4 rounded-none mb-4">
-          <h4 className="text-sm font-bold text-[#D4F94E] mb-3">📜 명언</h4>
-          <div className="space-y-2">
-            {legend.famousQuotes?.map((quote, i) => (
-              <p key={i} className="text-sm text-gray-300 italic">"{quote}"</p>
-            ))}
+      {/* Card 1: Legend Identity */}
+      <div className="bg-[#3A3A3A] border-2 border-[#1A1A1A] rounded-none shadow-[4px_4px_0px_0px_#1A1A1A] p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+          <div className="text-6xl">{legend.legendIcon}</div>
+          <div className="flex-1">
+            <h2 className="text-2xl font-black" style={{ color }}>
+              {legend.legendName}
+            </h2>
+            <p className="text-sm text-gray-400">{legend.legendNameEn}</p>
+            <p className="text-sm mt-0.5" style={{ color: `${color}99` }}>
+              {legend.legendNickname}
+            </p>
+
+            {/* Famous Quote */}
+            <div className="mt-4 pl-4 border-l-4" style={{ borderColor: color }}>
+              <p className="text-sm text-gray-300 italic">
+                &ldquo;{legend.famousQuote}&rdquo;
+              </p>
+            </div>
+
+            {/* Philosophy */}
+            <p className="mt-4 text-sm text-gray-300 leading-relaxed">
+              {legend.philosophy}
+            </p>
+
+            {/* Tags */}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span
+                className="text-xs px-2.5 py-1 border-2 border-[#1A1A1A] rounded-none font-bold"
+                style={{ backgroundColor: `${color}20`, color }}
+              >
+                📋 {legend.portfolioStyle}
+              </span>
+              <span className="text-xs px-2.5 py-1 bg-[#2A2A2A] border-2 border-[#1A1A1A] rounded-none text-gray-300">
+                ⏱️ {legend.holdingPeriod}
+              </span>
+              {risk && (
+                <span
+                  className="text-xs px-2.5 py-1 border-2 border-[#1A1A1A] rounded-none font-bold"
+                  style={{ backgroundColor: `${risk.color}20`, color: risk.color }}
+                >
+                  ⚡ {risk.label}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-        
-        <div className="bg-[#2A2A2A] border-2 border-[#1A1A1A] p-4 rounded-none">
-          <h4 className="text-sm font-bold text-[#D4F94E] mb-2">💬 현재 시장 진단</h4>
-          <p className="text-sm text-gray-300">{legend.currentMarketCommentary}</p>
         </div>
       </div>
 
-      {/* Top Picks */}
-      <div className="bg-[#3A3A3A] border-2 border-[#1A1A1A] rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] p-6">
-        <h2 className="text-xl font-black mb-4" style={{ color }}>
-          ⭐ 추천 종목 TOP 10
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {legend.topPicks.map((pick, idx) => (
-            <div
-              key={pick.ticker}
-              className="bg-[#2A2A2A] border-2 border-[#1A1A1A] p-4 rounded-none hover:border-[#D4F94E] transition-colors"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl font-black" style={{ color }}>
-                    #{idx + 1}
-                  </span>
-                  <div>
-                    <Link
-                      href={`/?ticker=${pick.ticker}`}
-                      className="font-bold text-white hover:text-[#D4F94E] text-lg"
-                    >
-                      {pick.ticker}
-                    </Link>
-                    <p className="text-xs text-gray-400">{pick.name}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-black" style={{ color }}>
-                    {pick.score}점
-                  </div>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mb-2">{pick.sector}</p>
-              <div className="space-y-1">
-                {pick.matchReasons.map((reason, i) => (
-                  <div key={i} className="text-xs text-[#D4F94E]">
-                    ✓ {reason}
-                  </div>
-                ))}
-              </div>
-            </div>
+      {/* Card 2: Market View */}
+      <div className="bg-[#3A3A3A] border-2 border-[#1A1A1A] rounded-none shadow-[4px_4px_0px_0px_#1A1A1A] p-6">
+        <h3 className="text-lg font-black mb-3" style={{ color }}>
+          💬 현재 시장 진단
+        </h3>
+        <p className="text-sm text-gray-200 leading-relaxed mb-4">
+          {legend.marketView}
+        </p>
+        <div className="bg-[#2A2A2A] border-2 border-[#1A1A1A] rounded-none p-4">
+          <h4 className="text-xs font-bold text-[#D4F94E] mb-2">📌 투자 조언</h4>
+          <p className="text-sm text-gray-300 leading-relaxed">
+            {legend.investmentAdvice}
+          </p>
+        </div>
+      </div>
+
+      {/* Card 3: TOP 5 Picks */}
+      <div>
+        <h3 className="text-lg font-black mb-4" style={{ color }}>
+          ⭐ {legend.legendName}의 TOP 5 추천 종목
+        </h3>
+        <div className="space-y-4">
+          {legend.topPicks.map((pick) => (
+            <PickCard key={pick.ticker} pick={pick} color={color} />
           ))}
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Portfolio Allocation */}
-      <div className="bg-[#3A3A3A] border-2 border-[#1A1A1A] rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] p-6">
-        <h2 className="text-xl font-black mb-4" style={{ color }}>
-          📈 추천 포트폴리오 구성
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <div className="bg-[#2A2A2A] border-2 border-[#1A1A1A] p-4 text-center">
-            <div className="text-sm text-gray-400 mb-1">스타일</div>
-            <div className="font-bold">{legend.portfolio.style}</div>
+// ─── Pick Card 컴포넌트 ─────────────────────────────
+
+function PickCard({ pick, color }: { pick: LegendPick; color: string }) {
+  return (
+    <div className="bg-[#3A3A3A] border-2 border-[#1A1A1A] rounded-none shadow-[4px_4px_0px_0px_#1A1A1A] p-5">
+      {/* Top Row: Rank + Ticker + Price */}
+      <div className="flex items-start justify-between gap-4 mb-3">
+        <div className="flex items-center gap-3">
+          {/* Rank Badge */}
+          <div
+            className="w-10 h-10 flex items-center justify-center border-2 border-[#1A1A1A] rounded-none font-black text-lg text-[#1A1A1A]"
+            style={{ backgroundColor: color }}
+          >
+            {pick.rank}
           </div>
-          <div className="bg-[#2A2A2A] border-2 border-[#1A1A1A] p-4 text-center">
-            <div className="text-sm text-gray-400 mb-1">보유 기간</div>
-            <div className="font-bold">{HOLDING_PERIOD_KO[legend.portfolio.holdingPeriod]}</div>
-          </div>
-          <div className="bg-[#2A2A2A] border-2 border-[#1A1A1A] p-4 text-center">
-            <div className="text-sm text-gray-400 mb-1">리스크 성향</div>
-            <div
-              className="font-bold"
-              style={{ color: RISK_PROFILE_KO[legend.portfolio.riskProfile]?.color }}
-            >
-              {RISK_PROFILE_KO[legend.portfolio.riskProfile]?.label}
+          <div>
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/?ticker=${pick.ticker}`}
+                className="font-black text-lg text-white hover:underline transition-colors"
+                style={{ textDecorationColor: color }}
+              >
+                {pick.ticker}
+              </Link>
+              <span className="text-xs px-1.5 py-0.5 bg-[#2A2A2A] border border-[#1A1A1A] rounded-none text-gray-400">
+                {pick.sector}
+              </span>
             </div>
+            <p className="text-sm text-gray-400">{pick.name}</p>
           </div>
         </div>
+        <div className="text-right shrink-0">
+          <div className="text-lg font-bold text-white">
+            ${pick.currentPrice.toFixed(2)}
+          </div>
+          <div className={`text-sm font-bold ${pick.changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {pick.changePercent >= 0 ? '+' : ''}{pick.changePercent.toFixed(2)}%
+          </div>
+        </div>
+      </div>
 
-        {/* Allocation Bars */}
+      {/* Score Bar */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between text-xs mb-1">
+          <span className="text-gray-400">적합도</span>
+          <span className="font-bold" style={{ color }}>{pick.score}점</span>
+        </div>
+        <div className="w-full h-2.5 bg-[#1A1A1A] rounded-none overflow-hidden">
+          <div
+            className="h-full rounded-none transition-all duration-500"
+            style={{ width: `${pick.score}%`, backgroundColor: color }}
+          />
+        </div>
+      </div>
+
+      {/* Legend Opinion */}
+      {pick.legendOpinion && (
+        <div className="mb-4 bg-[#2A2A2A] border-2 border-[#1A1A1A] rounded-none p-4">
+          <div className="flex items-start gap-2">
+            <span className="text-lg shrink-0 mt-0.5">💬</span>
+            <p className="text-sm text-gray-300 italic leading-relaxed">
+              &ldquo;{pick.legendOpinion}&rdquo;
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Key Metrics */}
+      {pick.keyMetrics.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {pick.keyMetrics.map((metric, i) => (
+            <span
+              key={i}
+              className="text-xs px-2 py-1 border-2 border-[#1A1A1A] rounded-none font-bold"
+              style={{
+                backgroundColor: metric.isPositive ? '#22C55E15' : '#EF444415',
+                color: metric.isPositive ? '#22C55E' : '#EF4444',
+              }}
+            >
+              {metric.label}: {metric.value}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Reasons */}
+      {pick.reasons.length > 0 && (
+        <div className="space-y-1">
+          {pick.reasons.map((reason, i) => (
+            <div key={i} className="flex items-start gap-2 text-xs">
+              <span style={{ color }}>✓</span>
+              <span className="text-gray-300">{reason}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Consensus 컴포넌트 ─────────────────────────────
+
+function ConsensusSection({ consensus }: { consensus: ConsensusStock[] }) {
+  if (consensus.length === 0) {
+    return (
+      <div className="bg-[#3A3A3A] border-2 border-[#1A1A1A] rounded-none shadow-[4px_4px_0px_0px_#1A1A1A] p-8 text-center">
+        <div className="text-5xl mb-4">🤝</div>
+        <p className="text-gray-400">현재 2명 이상의 레전드가 공통으로 추천하는 종목이 없습니다.</p>
+        <p className="text-xs text-gray-500 mt-2">각 레전드의 전략이 매우 차별화되어 있다는 의미입니다.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-[#3A3A3A] border-2 border-[#1A1A1A] rounded-none shadow-[4px_4px_0px_0px_#1A1A1A] p-6">
+        <h3 className="text-lg font-black text-[#D4F94E] mb-2">
+          📊 레전드 컨센서스
+        </h3>
+        <p className="text-sm text-gray-400 mb-6">
+          2명 이상의 투자 레전드가 공통으로 추천하는 종목입니다. 서로 다른 투자 철학에서도 공통으로 포착된 기회를 의미합니다.
+        </p>
+
         <div className="space-y-4">
-          {legend.portfolio.recommendedAllocation.map((alloc) => (
-            <div key={alloc.category}>
-              <div className="flex justify-between text-sm mb-1">
-                <span>{alloc.category}</span>
-                <span className="font-bold" style={{ color }}>
-                  {alloc.percentage}%
-                </span>
-              </div>
-              <div className="w-full bg-[#1A1A1A] h-4 rounded-none overflow-hidden">
-                <div
-                  className="h-full rounded-none"
-                  style={{
-                    width: `${alloc.percentage}%`,
-                    backgroundColor: color,
-                  }}
-                />
-              </div>
-              {alloc.tickers.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {alloc.tickers.map((ticker) => (
+          {consensus.map((stock) => (
+            <div
+              key={stock.ticker}
+              className="bg-[#2A2A2A] border-2 border-[#1A1A1A] rounded-none p-5"
+            >
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div>
+                  <div className="flex items-center gap-2">
                     <Link
-                      key={ticker}
-                      href={`/?ticker=${ticker}`}
-                      className="text-xs px-2 py-1 bg-[#1A1A1A] hover:bg-[#D4F94E] hover:text-[#1A1A1A] rounded-none transition-colors"
+                      href={`/?ticker=${stock.ticker}`}
+                      className="font-black text-lg text-white hover:text-[#D4F94E] transition-colors"
                     >
-                      {ticker}
+                      {stock.ticker}
                     </Link>
-                  ))}
+                    <span className="text-xs px-1.5 py-0.5 bg-[#3A3A3A] border border-[#1A1A1A] rounded-none text-gray-400">
+                      {stock.sector}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-400">{stock.name}</p>
                 </div>
-              )}
+                <div
+                  className="shrink-0 px-3 py-1.5 bg-[#D4F94E] text-[#1A1A1A] border-2 border-[#1A1A1A] rounded-none font-black text-sm shadow-[2px_2px_0px_0px_#1A1A1A]"
+                >
+                  {stock.count}명의 레전드 추천
+                </div>
+              </div>
+
+              {/* Which legends recommended */}
+              <div className="flex flex-wrap gap-3">
+                {stock.recommendedBy.map((rec) => {
+                  const legendColor = LEGEND_COLORS[rec.legendId] || '#D4F94E';
+                  return (
+                    <div
+                      key={rec.legendId}
+                      className="flex items-center gap-2 px-3 py-2 bg-[#3A3A3A] border-2 border-[#1A1A1A] rounded-none"
+                    >
+                      <span className="text-lg">{rec.legendIcon}</span>
+                      <div>
+                        <p className="text-xs font-bold" style={{ color: legendColor }}>
+                          {rec.legendName}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          적합도 {rec.score}점
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ))}
         </div>
