@@ -80,7 +80,7 @@ interface MarketData {
 const VERDICT_STYLES: Record<Verdict, { bg: string; text: string; label: string; emoji: string; guide: string }> = {
   very_bullish: { bg: 'bg-[#D4F94E]', text: 'text-white', label: '강력 매수 신호', emoji: '🟢', guide: '시장 공포 + 저평가 구간으로, 매수 적기일 가능성이 높습니다' },
   bullish: { bg: 'bg-[#A8C93E]', text: 'text-white', label: '매수 긍정적', emoji: '🟡', guide: '전반적으로 매수에 유리한 조건입니다' },
-  neutral: { bg: 'bg-[#F5F5F5]', text: 'text-black', label: '중립 (관망)', emoji: '⚪', guide: '뚜렷한 매수·매도 신호가 없는 구간입니다' },
+  neutral: { bg: 'bg-[#52525B]', text: 'text-white', label: '중립 (관망)', emoji: '⚪', guide: '뚜렷한 매수·매도 신호가 없는 구간입니다' },
   bearish: { bg: 'bg-[#C45C3E]', text: 'text-white', label: '매수 주의', emoji: '🟠', guide: '시장 과열 징후가 있어 신규 매수에 주의가 필요합니다' },
   very_bearish: { bg: 'bg-[#C45C3E]', text: 'text-white', label: '과열 경고', emoji: '🔴', guide: '시장이 과열 구간으로, 신규 매수를 자제하세요' },
 };
@@ -356,7 +356,7 @@ function ComparisonTable({ results }: { results: ScreenerResult[] }) {
               const v = VERDICT_STYLES[r.finalVerdict];
               return (
                 <td key={r.ticker} className="py-3 px-2 text-center">
-                  <span className={`font-bold text-lg ${v.bg === 'bg-[#F5F5F5]' ? 'text-[#D4F94E]' : v.text === 'text-white' ? 'text-[#D4F94E]' : 'text-white'}`}>
+                  <span className="font-bold text-lg text-[#D4F94E]">
                     {r.totalScore}
                   </span>
                 </td>
@@ -600,7 +600,7 @@ function SingleResultView({ result }: { result: ScreenerResult }) {
         <div className="flex flex-wrap gap-2 text-xs">
           <span className="px-2 py-1 bg-[#D4F94E]/20 text-[#D4F94E] rounded">🟢 53점 이상: 강력 매수 신호</span>
           <span className="px-2 py-1 bg-[#A8C93E]/20 text-green-300 rounded">🟡 42~52점: 매수 긍정적</span>
-          <span className="px-2 py-1 bg-[#F5F5F5]/20 text-[#D4F94E] rounded">⚪ 28~41점: 중립 (관망)</span>
+          <span className="px-2 py-1 bg-[#52525B]/30 text-gray-300 rounded">⚪ 28~41점: 중립 (관망)</span>
           <span className="px-2 py-1 bg-[#C45C3E]/20 text-[#C45C3E] rounded">🟠 18~27점: 매수 주의</span>
           <span className="px-2 py-1 bg-[#C45C3E]/20 text-[#C45C3E] rounded">🔴 18점 미만: 과열 경고</span>
         </div>
@@ -635,16 +635,23 @@ function SingleResultView({ result }: { result: ScreenerResult }) {
             max={5}
             color="bg-emerald-500"
           />
-          <div className="mt-4 p-3 bg-[#2A2A2A] rounded-none border-2 border-[#1A1A1A] text-sm space-y-1">
-            <p>
-              이동평균 상태: <span className="font-bold">{result.chart.signals.maStatus}</span>
-            </p>
-            <p>
-              200일 평균 대비 이격도: <span className="font-bold">{result.chart.signals.deviationPct}%</span>
-            </p>
-            <p>
-              RSI 구간: <span className="font-bold">{result.chart.signals.rsiLevel}</span>
-            </p>
+          <div className="mt-4 p-3 bg-[#2A2A2A] rounded-none border-2 border-[#1A1A1A] text-sm space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400">이동평균 상태</span>
+              <span className="font-bold text-white">{result.chart.signals.maStatus}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400">200일 평균 대비 이격도</span>
+              <span className="font-bold text-white">{result.chart.signals.deviationPct}%</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400">RSI 구간</span>
+              <span className="font-bold text-white">{result.chart.signals.rsiLevel}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400">차트 패턴</span>
+              <span className="font-bold text-white">{result.chart.signals.pattern}</span>
+            </div>
           </div>
         </div>
 
@@ -730,19 +737,19 @@ function SingleResultView({ result }: { result: ScreenerResult }) {
             color="bg-rose-500"
             source={result.dataSources?.hySpread}
           />
-          <div className="mt-4 p-3 bg-[#2A2A2A] rounded-none border-2 border-[#1A1A1A] text-sm space-y-1">
-            <p>
-              VIX 지수: <span className="font-bold">{result.sentiment.vix.current}</span>
-              <span className="text-gray-500 ml-1">(20 이하=안정, 30 이상=공포)</span>
-            </p>
-            <p>
-              풋/콜 비율: <span className="font-bold">{result.sentiment.putCallRatio.current}</span>
-              <span className="text-gray-500 ml-1">(1 이상=비관적)</span>
-            </p>
-            <p>
-              개인투자자 심리차: <span className="font-bold">{result.sentiment.aaii.spread.toFixed(1)}</span>
-              <span className="text-gray-500 ml-1">(음수=비관 우세)</span>
-            </p>
+          <div className="mt-4 p-3 bg-[#2A2A2A] rounded-none border-2 border-[#1A1A1A] text-sm space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400">VIX 지수</span>
+              <span className="font-bold text-white">{result.sentiment.vix.current} <span className="text-gray-500 text-xs font-normal">(20 이하=안정, 30 이상=공포)</span></span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400">풋/콜 비율</span>
+              <span className="font-bold text-white">{result.sentiment.putCallRatio.current} <span className="text-gray-500 text-xs font-normal">(1 이상=비관적)</span></span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400">개인투자자 심리차</span>
+              <span className="font-bold text-white">{result.sentiment.aaii.spread.toFixed(1)} <span className="text-gray-500 text-xs font-normal">(음수=비관 우세)</span></span>
+            </div>
           </div>
         </div>
       </div>
