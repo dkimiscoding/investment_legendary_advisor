@@ -16,6 +16,7 @@
     "src/types/**/*.ts",
     "src/lib/cache.ts",
     "src/lib/snapshots.ts",
+    "src/lib/persisted-snapshots.ts",
     "src/lib/config/scoring-thresholds.ts",
     "src/lib/validators.ts",
     "src/lib/screeners/chart-screener.ts",

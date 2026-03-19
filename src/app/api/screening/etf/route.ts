@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runETFScreening, getETFScreeningProgress, ETFScreeningReport } from '@/lib/screeners/etf-auto-screener';
+import { persistSnapshotToSupabase, readSnapshotFromSupabase } from '@/lib/persisted-snapshots';
 import { markSnapshotAsFallback, persistSnapshot, readSnapshot, type SnapshotMeta } from '@/lib/snapshots';
 
 const ETF_SNAPSHOT_KEY = 'snapshot:etf';
@@ -34,6 +35,14 @@ export async function GET(request: NextRequest) {
         { headers: buildHeaders(cached.snapshotMeta) },
       );
     }
+
+    const persisted = await readSnapshotFromSupabase<ETFScreeningReport>(ETF_SNAPSHOT_KEY);
+    if (persisted) {
+      return NextResponse.json(
+        { ...persisted.data, snapshotMeta: persisted.snapshotMeta },
+        { headers: buildHeaders(persisted.snapshotMeta) },
+      );
+    }
   }
 
   try {
@@ -43,6 +52,7 @@ export async function GET(request: NextRequest) {
     const snapshot = persistSnapshot(undefined, ETF_SNAPSHOT_KEY, report, {
       sourceUpdatedAt: report.timestamp,
     });
+    await persistSnapshotToSupabase(ETF_SNAPSHOT_KEY, snapshot, undefined, process.env);
 
     return NextResponse.json(
       { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta },
@@ -54,6 +64,15 @@ export async function GET(request: NextRequest) {
 
     if (fallback) {
       const snapshot = markSnapshotAsFallback(fallback, message);
+      return NextResponse.json(
+        { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta },
+        { headers: { ...buildHeaders(snapshot.snapshotMeta), 'X-Error': message } },
+      );
+    }
+
+    const persistedFallback = await readSnapshotFromSupabase<ETFScreeningReport>(ETF_SNAPSHOT_KEY);
+    if (persistedFallback) {
+      const snapshot = markSnapshotAsFallback(persistedFallback, message);
       return NextResponse.json(
         { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta },
         { headers: { ...buildHeaders(snapshot.snapshotMeta), 'X-Error': message } },

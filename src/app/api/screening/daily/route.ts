@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { persistSnapshotToSupabase, readSnapshotFromSupabase } from '@/lib/persisted-snapshots';
 import { markSnapshotAsFallback, persistSnapshot, readSnapshot, type SnapshotMeta } from '@/lib/snapshots';
 import { runDailyScreening, getScreeningProgress } from '@/lib/screeners/auto-screener';
 import type { DailyScreeningReport } from '@/types';
@@ -36,12 +37,21 @@ export async function GET(request: NextRequest) {
           { headers: buildHeaders(cached.snapshotMeta) },
         );
       }
+
+      const persisted = await readSnapshotFromSupabase<DailyScreeningReport>(DAILY_SNAPSHOT_KEY);
+      if (persisted) {
+        return NextResponse.json(
+          { ...persisted.data, snapshotMeta: persisted.snapshotMeta },
+          { headers: buildHeaders(persisted.snapshotMeta) },
+        );
+      }
     }
 
     const report = await runDailyScreening(forceRefresh);
     const snapshot = persistSnapshot(undefined, DAILY_SNAPSHOT_KEY, report, {
       sourceUpdatedAt: report.updatedAt,
     });
+    await persistSnapshotToSupabase(DAILY_SNAPSHOT_KEY, snapshot, undefined, process.env);
 
     return NextResponse.json(
       { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta },
@@ -53,6 +63,15 @@ export async function GET(request: NextRequest) {
 
     if (fallback) {
       const snapshot = markSnapshotAsFallback(fallback, message);
+      return NextResponse.json(
+        { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta, progress: getScreeningProgress() },
+        { headers: buildHeaders(snapshot.snapshotMeta) },
+      );
+    }
+
+    const persistedFallback = await readSnapshotFromSupabase<DailyScreeningReport>(DAILY_SNAPSHOT_KEY);
+    if (persistedFallback) {
+      const snapshot = markSnapshotAsFallback(persistedFallback, message);
       return NextResponse.json(
         { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta, progress: getScreeningProgress() },
         { headers: buildHeaders(snapshot.snapshotMeta) },
