@@ -19,7 +19,6 @@
     "src/lib/screeners/chart-screener.ts",
     "src/lib/screeners/combined-screener.ts",
     "src/lib/screeners/dividend-screener.ts",
-    "src/lib/screeners/liquidity-screener.ts",
     "src/lib/screeners/masters-screener.ts",
     "src/lib/screeners/sentiment-screener.ts",
     "src/lib/screeners/valuation-screener.ts",
