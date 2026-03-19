@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { scheduleSnapshotRefresh } from '@/lib/background-refresh';
 import { persistSnapshotToSupabase, readSnapshotFromSupabase } from '@/lib/persisted-snapshots';
 import { markSnapshotAsFallback, persistSnapshot, readSnapshot, type SnapshotMeta } from '@/lib/snapshots';
 import { runDailyScreening, getScreeningProgress } from '@/lib/screeners/auto-screener';
@@ -24,6 +25,14 @@ function buildHeaders(meta: SnapshotMeta): HeadersInit {
   };
 }
 
+async function refreshDailySnapshot(): Promise<void> {
+  const report = await runDailyScreening(true);
+  const snapshot = persistSnapshot(undefined, DAILY_SNAPSHOT_KEY, report, {
+    sourceUpdatedAt: report.updatedAt,
+  });
+  await persistSnapshotToSupabase(DAILY_SNAPSHOT_KEY, snapshot, undefined, process.env);
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const forceRefresh = searchParams.get('refresh') === 'true';
@@ -32,17 +41,29 @@ export async function GET(request: NextRequest) {
     if (!forceRefresh) {
       const cached = readSnapshot<DailyScreeningReport>(undefined, DAILY_SNAPSHOT_KEY);
       if (cached) {
+        const refreshStarted = scheduleSnapshotRefresh({
+          key: DAILY_SNAPSHOT_KEY,
+          freshness: cached.snapshotMeta.freshness,
+          run: refreshDailySnapshot,
+          onError: (refreshError) => console.error('Daily background refresh failed:', refreshError),
+        });
         return NextResponse.json(
           { ...cached.data, snapshotMeta: cached.snapshotMeta },
-          { headers: buildHeaders(cached.snapshotMeta) },
+          { headers: { ...buildHeaders(cached.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } },
         );
       }
 
       const persisted = await readSnapshotFromSupabase<DailyScreeningReport>(DAILY_SNAPSHOT_KEY);
       if (persisted) {
+        const refreshStarted = scheduleSnapshotRefresh({
+          key: DAILY_SNAPSHOT_KEY,
+          freshness: persisted.snapshotMeta.freshness,
+          run: refreshDailySnapshot,
+          onError: (refreshError) => console.error('Daily background refresh failed:', refreshError),
+        });
         return NextResponse.json(
           { ...persisted.data, snapshotMeta: persisted.snapshotMeta },
-          { headers: buildHeaders(persisted.snapshotMeta) },
+          { headers: { ...buildHeaders(persisted.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } },
         );
       }
     }

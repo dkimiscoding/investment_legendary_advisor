@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildLegendRecommendations } from '@/lib/legends/build-recommendations';
+import { scheduleSnapshotRefresh } from '@/lib/background-refresh';
 import { persistSnapshotToSupabase, readSnapshotFromSupabase } from '@/lib/persisted-snapshots';
 import { markSnapshotAsFallback, persistSnapshot, readSnapshot, type SnapshotMeta } from '@/lib/snapshots';
 import { runDailyScreening } from '@/lib/screeners/auto-screener';
@@ -24,6 +25,15 @@ function selectLegendResponse(recommendations: LegendsResponse, legendId: string
   return recommendations.legends.find((legend) => legend.legendId === legendId) ?? null;
 }
 
+async function refreshLegendsSnapshot(): Promise<void> {
+  const screeningReport = await runDailyScreening(true);
+  const recommendations = buildLegendRecommendations({ report: screeningReport });
+  const snapshot = persistSnapshot(undefined, LEGENDS_SNAPSHOT_KEY, recommendations, {
+    sourceUpdatedAt: recommendations.updatedAt,
+  });
+  await persistSnapshotToSupabase(LEGENDS_SNAPSHOT_KEY, snapshot, undefined, process.env);
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const legendId = searchParams.get('legend');
@@ -33,33 +43,45 @@ export async function GET(request: NextRequest) {
     if (!forceRefresh) {
       const cached = readSnapshot<LegendsResponse>(undefined, LEGENDS_SNAPSHOT_KEY);
       if (cached) {
+        const refreshStarted = scheduleSnapshotRefresh({
+          key: LEGENDS_SNAPSHOT_KEY,
+          freshness: cached.snapshotMeta.freshness,
+          run: refreshLegendsSnapshot,
+          onError: (refreshError) => console.error('Legends background refresh failed:', refreshError),
+        });
         if (legendId) {
           const filtered = selectLegendResponse(cached.data, legendId);
           if (!filtered) {
             return NextResponse.json({ error: '해당 레전드를 찾을 수 없습니다' }, { status: 404 });
           }
-          return NextResponse.json(filtered, { headers: buildHeaders(cached.snapshotMeta) });
+          return NextResponse.json(filtered, { headers: { ...buildHeaders(cached.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } });
         }
 
         return NextResponse.json(
           { ...cached.data, snapshotMeta: cached.snapshotMeta },
-          { headers: buildHeaders(cached.snapshotMeta) },
+          { headers: { ...buildHeaders(cached.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } },
         );
       }
 
       const persisted = await readSnapshotFromSupabase<LegendsResponse>(LEGENDS_SNAPSHOT_KEY);
       if (persisted) {
+        const refreshStarted = scheduleSnapshotRefresh({
+          key: LEGENDS_SNAPSHOT_KEY,
+          freshness: persisted.snapshotMeta.freshness,
+          run: refreshLegendsSnapshot,
+          onError: (refreshError) => console.error('Legends background refresh failed:', refreshError),
+        });
         if (legendId) {
           const filtered = selectLegendResponse(persisted.data, legendId);
           if (!filtered) {
             return NextResponse.json({ error: '해당 레전드를 찾을 수 없습니다' }, { status: 404 });
           }
-          return NextResponse.json(filtered, { headers: buildHeaders(persisted.snapshotMeta) });
+          return NextResponse.json(filtered, { headers: { ...buildHeaders(persisted.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } });
         }
 
         return NextResponse.json(
           { ...persisted.data, snapshotMeta: persisted.snapshotMeta },
-          { headers: buildHeaders(persisted.snapshotMeta) },
+          { headers: { ...buildHeaders(persisted.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } },
         );
       }
     }

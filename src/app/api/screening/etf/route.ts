@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { scheduleSnapshotRefresh } from '@/lib/background-refresh';
 import { runETFScreening, getETFScreeningProgress, ETFScreeningReport } from '@/lib/screeners/etf-auto-screener';
 import { persistSnapshotToSupabase, readSnapshotFromSupabase } from '@/lib/persisted-snapshots';
 import { markSnapshotAsFallback, persistSnapshot, readSnapshot, type SnapshotMeta } from '@/lib/snapshots';
@@ -18,6 +19,14 @@ function buildHeaders(meta: SnapshotMeta, responseTimeMs?: number): HeadersInit 
   };
 }
 
+async function refreshEtfSnapshot(): Promise<void> {
+  const report = await runETFScreening();
+  const snapshot = persistSnapshot(undefined, ETF_SNAPSHOT_KEY, report, {
+    sourceUpdatedAt: report.timestamp,
+  });
+  await persistSnapshotToSupabase(ETF_SNAPSHOT_KEY, snapshot, undefined, process.env);
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const action = searchParams.get('action');
@@ -30,17 +39,29 @@ export async function GET(request: NextRequest) {
   if (!force) {
     const cached = readSnapshot<ETFScreeningReport>(undefined, ETF_SNAPSHOT_KEY);
     if (cached) {
+      const refreshStarted = scheduleSnapshotRefresh({
+        key: ETF_SNAPSHOT_KEY,
+        freshness: cached.snapshotMeta.freshness,
+        run: refreshEtfSnapshot,
+        onError: (refreshError) => console.error('ETF background refresh failed:', refreshError),
+      });
       return NextResponse.json(
         { ...cached.data, snapshotMeta: cached.snapshotMeta },
-        { headers: buildHeaders(cached.snapshotMeta) },
+        { headers: { ...buildHeaders(cached.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } },
       );
     }
 
     const persisted = await readSnapshotFromSupabase<ETFScreeningReport>(ETF_SNAPSHOT_KEY);
     if (persisted) {
+      const refreshStarted = scheduleSnapshotRefresh({
+        key: ETF_SNAPSHOT_KEY,
+        freshness: persisted.snapshotMeta.freshness,
+        run: refreshEtfSnapshot,
+        onError: (refreshError) => console.error('ETF background refresh failed:', refreshError),
+      });
       return NextResponse.json(
         { ...persisted.data, snapshotMeta: persisted.snapshotMeta },
-        { headers: buildHeaders(persisted.snapshotMeta) },
+        { headers: { ...buildHeaders(persisted.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } },
       );
     }
   }
