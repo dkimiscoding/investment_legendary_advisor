@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:build": "rm -rf .tmp/tests && tsc -p tsconfig.tests.json && mkdir -p .tmp/tests/node_modules/@ && ln -s ../../src/lib .tmp/tests/node_modules/@/lib && ln -s ../../src/types .tmp/tests/node_modules/@/types",
+    "test": "npm run test:build && node --test .tmp/tests/tests/**/*.test.js"
   },
   "dependencies": {
     "next": "^15.5.12",
