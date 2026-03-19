@@ -287,16 +287,13 @@ function ComparisonTable({ results }: { results: ScreenerResult[] }) {
           )}
           <tr className="bg-[#2A2A2A]/50">
             <td className="py-3 px-2 text-white font-bold">종합 점수 (70점 만점)</td>
-            {results.map((r) => {
-              const v = VERDICT_STYLES[r.finalVerdict];
-              return (
-                <td key={r.ticker} className="py-3 px-2 text-center">
-                  <span className="font-bold text-lg text-[#D4F94E]">
-                    {r.totalScore}
-                  </span>
-                </td>
-              );
-            })}
+            {results.map((r) => (
+              <td key={r.ticker} className="py-3 px-2 text-center">
+                <span className="font-bold text-lg text-[#D4F94E]">
+                  {r.totalScore}
+                </span>
+              </td>
+            ))}
           </tr>
           <tr>
             <td className="py-2 px-2 text-gray-400">판정</td>
