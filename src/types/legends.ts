@@ -1,3 +1,5 @@
+import type { SnapshotMeta } from '@/lib/snapshots';
+
 export interface LegendKeyMetric {
   label: string;
   value: string;
@@ -59,4 +61,5 @@ export interface LegendsResponse {
     sp500Change: number;
   };
   updatedAt: string;
+  snapshotMeta?: SnapshotMeta;
 }

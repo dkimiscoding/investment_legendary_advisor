@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import SnapshotStatusBanner from '@/components/SnapshotStatusBanner';
+import type { SnapshotMeta } from '@/lib/snapshots';
 
 // ─── 타입 정의 ───────────────────────────────────────
 
@@ -66,6 +68,7 @@ interface ETFReport {
   sectorBest: Record<string, ETFResult>;
   dividendETFs: ETFResult[];
   allResults: ETFResult[];
+  snapshotMeta?: SnapshotMeta;
 }
 
 // ─── 상수 ────────────────────────────────────────────
@@ -217,6 +220,8 @@ export default function ETFPage() {
 
         {report && (
           <>
+            <SnapshotStatusBanner snapshotMeta={report.snapshotMeta} />
+
             {/* 요약 카드 */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
               <div className="bg-[#3A3A3A] border border-[#1A1A1A] rounded-none border-2 border-[#1A1A1A] p-3 text-center">

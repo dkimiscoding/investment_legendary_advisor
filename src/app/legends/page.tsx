@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import SnapshotStatusBanner from '@/components/SnapshotStatusBanner';
 import type { ConsensusStock, LegendPick, LegendRecommendation, LegendsResponse } from '@/types';
 import {
   LEGEND_COLORS,
@@ -112,8 +113,12 @@ export default function LegendsPage() {
             8명의 전설적 투자자들이 현재 시장에서 추천하는 종목
           </p>
 
+          <div className="mt-3">
+            <SnapshotStatusBanner snapshotMeta={data.snapshotMeta} />
+          </div>
+
           {/* Market Summary Bar */}
-          <div className="mt-3 flex flex-wrap gap-3 text-xs">
+          <div className="flex flex-wrap gap-3 text-xs">
             <span className="px-2 py-1 bg-[#2A2A2A] border border-[#1A1A1A] rounded-none">
               VIX <span className="font-bold text-[#D4F94E]">{data.marketSummary.vix.value.toFixed(1)}</span>
               <span className="text-gray-500 ml-1">({VIX_LEVEL_KO[data.marketSummary.vix.level] || data.marketSummary.vix.level})</span>
