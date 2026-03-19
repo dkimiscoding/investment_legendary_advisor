@@ -276,6 +276,8 @@ export interface ScreeningResult {
   lastUpdated: string;
 }
 
+export * from './legends';
+
 export interface DailyScreeningReport {
   date: string;
   marketSummary: {

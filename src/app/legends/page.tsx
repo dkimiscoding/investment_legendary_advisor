@@ -2,93 +2,17 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import type { ConsensusStock, LegendPick, LegendRecommendation, LegendsResponse } from '@/types';
+import {
+  LEGEND_COLORS,
+  RISK_PROFILE_KO,
+  SENTIMENT_KO,
+  VIX_LEVEL_KO,
+} from '@/lib/legends/shared';
 
 // ─── 타입 정의 ───────────────────────────────────────
 
-interface LegendKeyMetric {
-  label: string;
-  value: string;
-  isPositive: boolean;
-}
-
-interface LegendPick {
-  rank: number;
-  ticker: string;
-  name: string;
-  sector: string;
-  currentPrice: number;
-  changePercent: number;
-  score: number;
-  legendOpinion: string;
-  keyMetrics: LegendKeyMetric[];
-  reasons: string[];
-}
-
-interface LegendRecommendation {
-  legendId: string;
-  legendName: string;
-  legendNameEn: string;
-  legendNickname: string;
-  legendIcon: string;
-  legendColor: string;
-  philosophy: string;
-  famousQuote: string;
-  marketView: string;
-  investmentAdvice: string;
-  topPicks: LegendPick[];
-  portfolioStyle: string;
-  holdingPeriod: string;
-  riskProfile: string;
-}
-
-interface ConsensusStock {
-  ticker: string;
-  name: string;
-  sector: string;
-  recommendedBy: { legendId: string; legendName: string; legendIcon: string; score: number }[];
-  count: number;
-}
-
-interface LegendsResponse {
-  legends: LegendRecommendation[];
-  consensus: ConsensusStock[];
-  totalLegends: number;
-  marketSummary: {
-    vix: { value: number; level: string };
-    sentiment: string;
-    sp500Change: number;
-  };
-  updatedAt: string;
-}
-
 // ─── 상수 ────────────────────────────────────────────
-
-const LEGEND_COLORS: Record<string, string> = {
-  buffett: '#D4F94E', graham: '#60A5FA', lynch: '#F472B6', livermore: '#F87171',
-  templeton: '#A78BFA', simons: '#34D399', bogle: '#94A3B8', dalio: '#FB923C',
-};
-
-const RISK_PROFILE_KO: Record<string, { label: string; color: string }> = {
-  conservative: { label: '보수적', color: '#22C55E' },
-  moderate: { label: '중립적', color: '#EAB308' },
-  aggressive: { label: '공격적', color: '#EF4444' },
-};
-
-const SENTIMENT_KO: Record<string, string> = {
-  extreme_fear: '극도의 공포',
-  fear: '공포',
-  neutral: '중립',
-  greed: '탐욕',
-  extreme_greed: '극도의 탐욕',
-};
-
-const VIX_LEVEL_KO: Record<string, string> = {
-  low: '안정',
-  moderate: '보통',
-  elevated: '경계',
-  high: '공포',
-  extreme: '극도 공포',
-};
 
 // ─── 메인 컴포넌트 ──────────────────────────────────
 

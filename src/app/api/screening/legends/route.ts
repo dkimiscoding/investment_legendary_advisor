@@ -1,87 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LEGEND_STRATEGIES } from '@/lib/data/legend-strategies';
 import { STOCK_NAMES } from '@/lib/data/stock-universe';
+import {
+  HOLDING_PERIOD_KO,
+  LEGEND_COLORS,
+  LEGEND_ICONS,
+  PORTFOLIO_STYLE_KO,
+  SECTOR_KO,
+  maStatusLabel,
+  rsiLabel,
+  valLabel,
+} from '@/lib/legends/shared';
 import { runDailyScreening } from '@/lib/screeners/auto-screener';
-import { ScreeningResult, DailyScreeningReport } from '@/types';
+import type {
+  ConsensusStock,
+  DailyScreeningReport,
+  LegendKeyMetric,
+  LegendRecommendation,
+  LegendPick,
+  ScreeningResult,
+} from '@/types';
 
 export const maxDuration = 300;
 
-// ─── Response Types ───────────────────────────────────
-
-interface LegendKeyMetric {
-  label: string;
-  value: string;
-  isPositive: boolean;
-}
-
-interface LegendPick {
-  rank: number;
-  ticker: string;
-  name: string;
-  sector: string;
-  currentPrice: number;
-  changePercent: number;
-  score: number;
-  legendOpinion: string;
-  keyMetrics: LegendKeyMetric[];
-  reasons: string[];
-}
-
-interface LegendRecommendation {
-  legendId: string;
-  legendName: string;
-  legendNameEn: string;
-  legendNickname: string;
-  legendIcon: string;
-  legendColor: string;
-  philosophy: string;
-  famousQuote: string;
-  marketView: string;
-  investmentAdvice: string;
-  topPicks: LegendPick[];
-  portfolioStyle: string;
-  holdingPeriod: string;
-  riskProfile: string;
-}
-
-interface ConsensusStock {
-  ticker: string;
-  name: string;
-  sector: string;
-  recommendedBy: { legendId: string; legendName: string; legendIcon: string; score: number }[];
-  count: number;
-}
-
-// ─── Constants ────────────────────────────────────────
-
-const LEGEND_ICONS: Record<string, string> = {
-  buffett: '🦉', graham: '📚', lynch: '🔍', livermore: '📈',
-  templeton: '🌍', simons: '🤖', bogle: '⚖️', dalio: '🌦️',
-};
-
-const LEGEND_COLORS: Record<string, string> = {
-  buffett: '#D4F94E', graham: '#60A5FA', lynch: '#F472B6', livermore: '#F87171',
-  templeton: '#A78BFA', simons: '#34D399', bogle: '#94A3B8', dalio: '#FB923C',
-};
-
 const TOP_PICKS_COUNT = 5;
 const MAX_OVERLAP = 2;
-
-const SECTOR_KO: Record<string, string> = {
-  'Consumer Staples': '필수소비재', 'Healthcare': '헬스케어', 'Financials': '금융',
-  'Technology': '기술', 'Industrials': '산업재', 'Energy': '에너지',
-  'Consumer Discretionary': '임의소비재', 'Communications': '통신', 'Utilities': '유틸리티',
-  'Real Estate': '부동산', 'Materials': '소재', 'ETF': 'ETF', 'Other': '기타',
-};
-
-const PORTFOLIO_STYLE_KO: Record<string, string> = {
-  concentrated: '집중 투자형', diversified: '분산 투자형', quantitative: '퀀트형',
-  index: '인덱스형', 'all-weather': '올웨더형',
-};
-
-const HOLDING_PERIOD_KO: Record<string, string> = {
-  short: '단기 (1년 미만)', medium: '중기 (1-3년)', long: '장기 (3-10년)', indefinite: '무기한',
-};
 
 // ─── Scoring Engine Interface ─────────────────────────
 
@@ -92,27 +35,6 @@ interface ScoringEngine {
   opinion(stock: ScreeningResult): string;
   metrics(stock: ScreeningResult): LegendKeyMetric[];
   reasons(stock: ScreeningResult): string[];
-}
-
-// ─── Helper ───────────────────────────────────────────
-
-function maStatusLabel(status: string): string {
-  if (status === 'above_both') return '강한 상승';
-  if (status === 'above_50') return '상승 초기';
-  if (status === 'above_200') return '장기 상승';
-  return '하락 추세';
-}
-
-function rsiLabel(level: string): string {
-  if (level === 'oversold') return '과매도';
-  if (level === 'overbought') return '과매수';
-  return '중립';
-}
-
-function valLabel(verdict: string): string {
-  if (verdict === 'undervalued') return '저평가';
-  if (verdict === 'overvalued') return '고평가';
-  return '적정';
 }
 
 // ─── 1. 워런 버핏 (가치 + 배당 + 우량기업) ──────────

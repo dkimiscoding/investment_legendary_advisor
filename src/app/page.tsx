@@ -2,78 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import type { CombinedResult, DataSource, MarketOverview, MarketQuote } from '@/types';
 
 // ─── Type Definitions ────────────────────────────────
 
-type Verdict = 'very_bullish' | 'bullish' | 'neutral' | 'bearish' | 'very_bearish';
-type DataSource = 'live' | 'fallback';
-
-interface ScreenerResult {
-  ticker: string;
-  chart: {
-    scores: { total: number; ma: number; deviation: number; rsi: number; pattern: number; breadth?: number };
-    signals: { maStatus: string; deviationPct: number; rsiLevel: string; pattern: string };
-    verdict: string;
-  };
-  valuation: {
-    scores: { total: number; pe: number; fairPrice: number; peg: number; marketPe: number };
-    currentPrice: number;
-    peRatio: number;
-    marketPE: number;
-    fairPrice: number;
-    fairPriceRange?: { low: number; mid: number; high: number };
-    upsideDownside: number;
-    peg: number;
-    verdict: string;
-  };
-  sentiment: {
-    totalScore: number;
-    verdict: string;
-    vix: { current: number; score: number };
-    putCallRatio: { current: number; score: number };
-    aaii: { bullish: number; bearish: number; spread: number; score: number };
-    marginDebt: { yoy: number; score: number };
-    hySpread: { current: number; score: number };
-  };
-  dividend?: {
-    status: string;
-    scores: { yield: number; safety: number; growth: number; streak: number };
-    data: {
-      dividendYield: number;
-      payoutRatio: number;
-      consecutiveYears: number;
-      annualDividend: number;
-      growthRate: number;
-    };
-    totalScore: number;
-  };
-  dataSources?: {
-    vix: DataSource;
-    putCallRatio: DataSource;
-    aaii: DataSource;
-    marginDebt: DataSource;
-    hySpread: DataSource;
-  };
-  totalScore: number;
-  finalVerdict: Verdict;
-  actionGuide: string;
-}
-
-interface MarketQuote {
-  label: string;
-  ticker: string;
-  price: number;
-  change: number;
-  changePct: number;
-}
-
-interface MarketData {
-  sp500: MarketQuote;
-  nasdaq: MarketQuote;
-  vix: MarketQuote;
-  treasury10y: MarketQuote;
-  timestamp: string;
-}
+type Verdict = CombinedResult['finalVerdict'];
+type ScreenerResult = CombinedResult;
+type MarketData = MarketOverview;
 
 // ─── Constants ───────────────────────────────────────
 
