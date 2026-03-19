@@ -1,29 +1,90 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildLegendRecommendations } from '@/lib/legends/build-recommendations';
+import { markSnapshotAsFallback, persistSnapshot, readSnapshot, type SnapshotMeta } from '@/lib/snapshots';
 import { runDailyScreening } from '@/lib/screeners/auto-screener';
 import type { LegendsResponse } from '@/types';
 
 export const maxDuration = 300;
 
+const LEGENDS_SNAPSHOT_KEY = 'snapshot:legends';
+
+function buildHeaders(meta: SnapshotMeta): HeadersInit {
+  return {
+    'Cache-Control': meta.freshness === 'fresh'
+      ? 'public, max-age=900, stale-while-revalidate=3600'
+      : 'public, max-age=60, stale-while-revalidate=300',
+    'X-Snapshot-Freshness': meta.freshness,
+    'X-Generated-At': meta.generatedAt,
+    'X-Source-Updated-At': meta.sourceUpdatedAt,
+  };
+}
+
+function selectLegendResponse(recommendations: LegendsResponse, legendId: string) {
+  return recommendations.legends.find((legend) => legend.legendId === legendId) ?? null;
+}
+
 export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const legendId = searchParams.get('legend');
+  const forceRefresh = searchParams.get('refresh') === 'true';
+
   try {
-    const { searchParams } = new URL(request.url);
-    const legendId = searchParams.get('legend');
-    const screeningReport = await runDailyScreening(false);
+    if (!forceRefresh) {
+      const cached = readSnapshot<LegendsResponse>(undefined, LEGENDS_SNAPSHOT_KEY);
+      if (cached) {
+        if (legendId) {
+          const filtered = selectLegendResponse(cached.data, legendId);
+          if (!filtered) {
+            return NextResponse.json({ error: '해당 레전드를 찾을 수 없습니다' }, { status: 404 });
+          }
+          return NextResponse.json(filtered, { headers: buildHeaders(cached.snapshotMeta) });
+        }
+
+        return NextResponse.json(
+          { ...cached.data, snapshotMeta: cached.snapshotMeta },
+          { headers: buildHeaders(cached.snapshotMeta) },
+        );
+      }
+    }
+
+    const screeningReport = await runDailyScreening(forceRefresh);
     const recommendations = buildLegendRecommendations({ report: screeningReport });
+    const snapshot = persistSnapshot(undefined, LEGENDS_SNAPSHOT_KEY, recommendations, {
+      sourceUpdatedAt: recommendations.updatedAt,
+    });
 
     if (legendId) {
-      const filtered = recommendations.legends.find((legend) => legend.legendId === legendId);
+      const filtered = selectLegendResponse(snapshot.data, legendId);
       if (!filtered) {
         return NextResponse.json({ error: '해당 레전드를 찾을 수 없습니다' }, { status: 404 });
       }
-      return NextResponse.json(filtered);
+      return NextResponse.json(filtered, { headers: buildHeaders(snapshot.snapshotMeta) });
     }
 
-    return NextResponse.json(recommendations satisfies LegendsResponse);
+    return NextResponse.json(
+      { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta },
+      { headers: buildHeaders(snapshot.snapshotMeta) },
+    );
   } catch (error: unknown) {
-    console.error('Legend recommendations error:', error);
     const message = error instanceof Error ? error.message : '추천 생성 중 오류가 발생했습니다';
+    const fallback = readSnapshot<LegendsResponse>(undefined, LEGENDS_SNAPSHOT_KEY);
+
+    if (fallback) {
+      const snapshot = markSnapshotAsFallback(fallback, message);
+      if (legendId) {
+        const filtered = selectLegendResponse(snapshot.data, legendId);
+        if (!filtered) {
+          return NextResponse.json({ error: '해당 레전드를 찾을 수 없습니다' }, { status: 404 });
+        }
+        return NextResponse.json(filtered, { headers: buildHeaders(snapshot.snapshotMeta) });
+      }
+
+      return NextResponse.json(
+        { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta },
+        { headers: buildHeaders(snapshot.snapshotMeta) },
+      );
+    }
+
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

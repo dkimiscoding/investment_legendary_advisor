@@ -79,6 +79,28 @@ PEG = PER / EPS 성장률
 이격도 = (현재가 - 기준 이동평균선) / 기준 이동평균선 × 100
 ```
 
+
+## Snapshot 메타데이터
+
+주요 스크리닝 응답(`/api/screening/daily`, `/api/screening/etf`, `/api/screening/legends`)은 `snapshotMeta`를 포함할 수 있습니다.
+
+```json
+{
+  "snapshotMeta": {
+    "key": "snapshot:daily",
+    "freshness": "fresh | stale | fallback",
+    "generatedAt": "ISO date",
+    "sourceUpdatedAt": "ISO date",
+    "partialFailure": false,
+    "errorSummary": null
+  }
+}
+```
+
+- `fresh`: 최신 계산 결과
+- `stale`: 이전 성공 스냅샷 재사용
+- `fallback`: 새 계산 실패 후 이전 스냅샷으로 대체 응답
+
 ## 캐시 / fallback 메모
 
 - 일부 API는 캐시된 응답을 우선 반환합니다.
