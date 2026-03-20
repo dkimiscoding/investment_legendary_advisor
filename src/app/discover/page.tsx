@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import SnapshotStatusBanner from '@/components/SnapshotStatusBanner';
+import type { SnapshotMeta } from '@/lib/snapshots';
 
 // ─── 타입 정의 ───────────────────────────────────────
 
@@ -60,6 +62,7 @@ interface DailyReport {
     failedTickers: string[];
   };
   updatedAt: string;
+  snapshotMeta?: SnapshotMeta;
 }
 
 // ─── 상수 ────────────────────────────────────────────
@@ -495,6 +498,8 @@ export default function DiscoverPage() {
 
         {report && (
           <>
+            <SnapshotStatusBanner snapshotMeta={report.snapshotMeta} />
+
             {/* Market Summary */}
             <MarketSummary summary={report.marketSummary} />
 

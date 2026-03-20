@@ -283,12 +283,33 @@ export const LEGEND_STRATEGIES: LegendStrategy[] = [
   },
 ];
 
+interface LegendStockData {
+  marketCap?: number;
+  pe?: number;
+  pb?: number;
+  roe?: number;
+  dividendYield?: number;
+  debtToEquity?: number;
+  epsGrowth?: number;
+  volatility?: number;
+  sector?: string;
+}
+
+interface LegendScoreMetrics {
+  valuationScore?: number;
+  qualityScore?: number;
+  growthScore?: number;
+  momentumScore?: number;
+  dividendScore?: number;
+  stabilityScore?: number;
+}
+
 /**
  * 레전드별 추천 종목 필터링
  */
 export function getLegendRecommendedTickers(
   legendId: string,
-  stockData: Record<string, any>
+  stockData: Record<string, LegendStockData>
 ): string[] {
   const strategy = LEGEND_STRATEGIES.find(s => s.id === legendId);
   if (!strategy) return [];
@@ -302,14 +323,14 @@ export function getLegendRecommendedTickers(
     const { criteria } = strategy;
 
     // 기본 필터링
-    if (criteria.minMarketCap && data.marketCap < criteria.minMarketCap) return false;
-    if (criteria.maxPE && data.pe && data.pe > criteria.maxPE) return false;
-    if (criteria.maxPB && data.pb && data.pb > criteria.maxPB) return false;
-    if (criteria.minROE && data.roe && data.roe < criteria.minROE) return false;
-    if (criteria.minDividendYield && data.dividendYield && data.dividendYield < criteria.minDividendYield) return false;
-    if (criteria.maxDebtToEquity && data.debtToEquity && data.debtToEquity > criteria.maxDebtToEquity) return false;
-    if (criteria.minEpsGrowth && data.epsGrowth && data.epsGrowth < criteria.minEpsGrowth) return false;
-    if (criteria.maxVolatility && data.volatility && data.volatility > criteria.maxVolatility) return false;
+    if (criteria.minMarketCap && data.marketCap != null && data.marketCap < criteria.minMarketCap) return false;
+    if (criteria.maxPE && data.pe != null && data.pe > criteria.maxPE) return false;
+    if (criteria.maxPB && data.pb != null && data.pb > criteria.maxPB) return false;
+    if (criteria.minROE && data.roe != null && data.roe < criteria.minROE) return false;
+    if (criteria.minDividendYield && data.dividendYield != null && data.dividendYield < criteria.minDividendYield) return false;
+    if (criteria.maxDebtToEquity && data.debtToEquity != null && data.debtToEquity > criteria.maxDebtToEquity) return false;
+    if (criteria.minEpsGrowth && data.epsGrowth != null && data.epsGrowth < criteria.minEpsGrowth) return false;
+    if (criteria.maxVolatility && data.volatility != null && data.volatility > criteria.maxVolatility) return false;
 
     // 섹터 필터링
     if (criteria.sectorAvoid && data.sector && criteria.sectorAvoid.includes(data.sector)) return false;
@@ -323,7 +344,7 @@ export function getLegendRecommendedTickers(
  */
 export function calculateLegendScore(
   legendId: string,
-  stockMetrics: any
+  stockMetrics: LegendScoreMetrics
 ): number {
   const strategy = LEGEND_STRATEGIES.find(s => s.id === legendId);
   if (!strategy) return 0;

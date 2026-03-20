@@ -2,78 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import type { CombinedResult, DataSource, MarketOverview, MarketQuote } from '@/types';
+import { getPartialFailureSummary } from '@/lib/partial-failure';
 
 // ─── Type Definitions ────────────────────────────────
 
-type Verdict = 'very_bullish' | 'bullish' | 'neutral' | 'bearish' | 'very_bearish';
-type DataSource = 'live' | 'fallback';
-
-interface ScreenerResult {
-  ticker: string;
-  chart: {
-    scores: { total: number; ma: number; deviation: number; rsi: number; pattern: number; breadth?: number };
-    signals: { maStatus: string; deviationPct: number; rsiLevel: string; pattern: string };
-    verdict: string;
-  };
-  valuation: {
-    scores: { total: number; pe: number; fairPrice: number; peg: number; marketPe: number };
-    currentPrice: number;
-    peRatio: number;
-    marketPE: number;
-    fairPrice: number;
-    fairPriceRange?: { low: number; mid: number; high: number };
-    upsideDownside: number;
-    peg: number;
-    verdict: string;
-  };
-  sentiment: {
-    totalScore: number;
-    verdict: string;
-    vix: { current: number; score: number };
-    putCallRatio: { current: number; score: number };
-    aaii: { bullish: number; bearish: number; spread: number; score: number };
-    marginDebt: { yoy: number; score: number };
-    hySpread: { current: number; score: number };
-  };
-  dividend?: {
-    status: string;
-    scores: { yield: number; safety: number; growth: number; streak: number };
-    data: {
-      dividendYield: number;
-      payoutRatio: number;
-      consecutiveYears: number;
-      annualDividend: number;
-      growthRate: number;
-    };
-    totalScore: number;
-  };
-  dataSources?: {
-    vix: DataSource;
-    putCallRatio: DataSource;
-    aaii: DataSource;
-    marginDebt: DataSource;
-    hySpread: DataSource;
-  };
-  totalScore: number;
-  finalVerdict: Verdict;
-  actionGuide: string;
-}
-
-interface MarketQuote {
-  label: string;
-  ticker: string;
-  price: number;
-  change: number;
-  changePct: number;
-}
-
-interface MarketData {
-  sp500: MarketQuote;
-  nasdaq: MarketQuote;
-  vix: MarketQuote;
-  treasury10y: MarketQuote;
-  timestamp: string;
-}
+type Verdict = CombinedResult['finalVerdict'];
+type ScreenerResult = CombinedResult;
+type MarketData = MarketOverview;
 
 // ─── Constants ───────────────────────────────────────
 
@@ -352,16 +288,13 @@ function ComparisonTable({ results }: { results: ScreenerResult[] }) {
           )}
           <tr className="bg-[#2A2A2A]/50">
             <td className="py-3 px-2 text-white font-bold">종합 점수 (70점 만점)</td>
-            {results.map((r) => {
-              const v = VERDICT_STYLES[r.finalVerdict];
-              return (
-                <td key={r.ticker} className="py-3 px-2 text-center">
-                  <span className="font-bold text-lg text-[#D4F94E]">
-                    {r.totalScore}
-                  </span>
-                </td>
-              );
-            })}
+            {results.map((r) => (
+              <td key={r.ticker} className="py-3 px-2 text-center">
+                <span className="font-bold text-lg text-[#D4F94E]">
+                  {r.totalScore}
+                </span>
+              </td>
+            ))}
           </tr>
           <tr>
             <td className="py-2 px-2 text-gray-400">판정</td>
@@ -702,6 +635,16 @@ function SingleResultView({ result }: { result: ScreenerResult }) {
         <div className="bg-[#3A3A3A] rounded-none border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] p-4 sm:p-6">
           <h3 className="text-lg font-bold mb-1">🔄 시장 심리 분석 상세</h3>
           <p className="text-xs text-gray-500 mb-4">시장 공포·탐욕 수준을 분석합니다. 점수가 높을수록 시장이 공포 구간(= 매수 기회)입니다.</p>
+          {(() => {
+            const partialFailure = getPartialFailureSummary(result.dataSources);
+            if (!partialFailure) return null;
+            return (
+              <div className="mb-4 border-2 border-[#C45C3E] bg-[#C45C3E]/10 rounded-none p-3">
+                <div className="text-sm font-bold text-[#FED7AA]">⚠️ 일부 심리 지표가 추정치입니다</div>
+                <div className="text-xs text-gray-300 mt-1">{partialFailure.message}</div>
+              </div>
+            );
+          })()}
           <ScoreBar
             label="VIX 공포지수 (높으면 공포)"
             score={result.sentiment.vix.score}

@@ -1,0 +1,37 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": ".tmp/tests",
+    "rootDir": ".",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "jsx": "react-jsx",
+    "allowJs": false,
+    "incremental": false
+  },
+  "include": [
+    "src/types/**/*.ts",
+    "src/lib/cache.ts",
+    "src/lib/snapshots.ts",
+    "src/lib/persisted-snapshots.ts",
+    "src/lib/background-refresh.ts",
+    "src/lib/partial-failure.ts",
+    "src/lib/snapshot-display.ts",
+    "src/lib/config/scoring-thresholds.ts",
+    "src/lib/validators.ts",
+    "src/lib/screeners/chart-screener.ts",
+    "src/lib/screeners/combined-screener.ts",
+    "src/lib/screeners/dividend-screener.ts",
+    "src/lib/screeners/masters-screener.ts",
+    "src/lib/screeners/sentiment-screener.ts",
+    "src/lib/screeners/valuation-screener.ts",
+    "tests/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next"
+  ]
+}

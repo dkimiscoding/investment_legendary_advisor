@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Investment Advisor
 
-## Getting Started
+미국 주식과 ETF를 빠르게 분석하고, 추천 종목·ETF·투자 레전드 관점까지 함께 보는 Next.js 기반 투자 분석 서비스입니다.
 
-First, run the development server:
+> **주의:** 이 프로젝트는 투자 자문이 아니라 데이터 기반 시장 분석 도구입니다. 실제 투자 판단과 책임은 사용자에게 있습니다.
+
+## 주요 화면
+
+- `/` — 단일 종목 통합 분석
+  - 차트, 밸류에이션, 시장 심리, 배당/대가 분석을 종합해서 판정
+- `/discover` — 추천 종목 스크리닝
+  - 공포 매수, 저평가, 배당 매력, 모멘텀 리더 등 카테고리별 추천
+- `/etf` — ETF 스크리닝
+  - ETF 성과/효율/카테고리 기반 추천
+- `/legends` — 투자 레전드 전략
+  - 버핏, 그레이엄, 린치, 달리오 등 레전드별 후보 종목과 컨센서스
+
+## 핵심 분석 축
+
+- **차트 분석** — 이동평균선, RSI, 패턴, 시장 breadth
+- **밸류에이션 분석** — PER, 적정주가, PEG, 시장 PER 비교
+- **시장 심리 분석** — VIX, Put/Call, AAII, Margin Debt, HY Spread
+- **배당/전략 분석** — 배당 매력도, 투자 대가 관점 해석
+
+## 개발 명령어
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run lint
+npm run typecheck
+npm test
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 데이터/캐시 메모
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- 일부 데이터는 Yahoo Finance 및 외부 지표를 기반으로 수집합니다.
+- 외부 데이터가 즉시 불가능한 경우, **fallback/추정치**가 사용될 수 있습니다.
+- 스크리닝 API는 캐시 및 stale 응답 전략을 일부 사용합니다.
+- 현재 캐시와 rate limiting 일부는 **인메모리 기반**이라 서버리스/멀티 인스턴스 환경에서는 영속적이지 않습니다.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 현재 기술 스택
 
-## Learn More
+- Next.js 15 App Router
+- React 19
+- TypeScript 5
+- ESLint 9
+- Node built-in test runner
+- yahoo-finance2
 
-To learn more about Next.js, take a look at the following resources:
+## 품질 상태
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+현재 브랜치 기준으로 다음 검증 흐름을 사용합니다.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `npm run lint`
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+일부 lint warning은 남아 있을 수 있지만, 코드 변경 작업은 위 검증을 기준으로 진행합니다.

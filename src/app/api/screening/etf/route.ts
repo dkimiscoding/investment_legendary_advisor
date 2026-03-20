@@ -1,89 +1,103 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { scheduleSnapshotRefresh } from '@/lib/background-refresh';
 import { runETFScreening, getETFScreeningProgress, ETFScreeningReport } from '@/lib/screeners/etf-auto-screener';
-import { getCached, setCache } from '@/lib/cache';
+import { persistSnapshotToSupabase, readSnapshotFromSupabase } from '@/lib/persisted-snapshots';
+import { markSnapshotAsFallback, persistSnapshot, readSnapshot, type SnapshotMeta } from '@/lib/snapshots';
 
-/**
- * ETF 스크리닝 API
- * 
- * 문제 해결:
- * - 배치 처리 최적화 (5개씩, 0.5초 딜레이)
- * - 개별 분석 8초 타임아웃
- * - 캐싱 우선 제공 (stale-while-revalidate 패턴)
- */
+const ETF_SNAPSHOT_KEY = 'snapshot:etf';
 
-const STALE_CACHE_KEY = 'screening:etf:stale';
-const STALE_CACHE_TTL = 24 * 60 * 60 * 1000; // 24시간
+function buildHeaders(meta: SnapshotMeta, responseTimeMs?: number): HeadersInit {
+  return {
+    'Cache-Control': meta.freshness === 'fresh'
+      ? 'public, max-age=900, stale-while-revalidate=3600'
+      : 'public, max-age=60, stale-while-revalidate=300',
+    'X-ETF-Source': meta.freshness,
+    'X-Snapshot-Freshness': meta.freshness,
+    'X-Generated-At': meta.generatedAt,
+    'X-Source-Updated-At': meta.sourceUpdatedAt,
+    ...(responseTimeMs != null ? { 'X-Response-Time': `${responseTimeMs}ms` } : {}),
+  };
+}
+
+async function refreshEtfSnapshot(): Promise<void> {
+  const report = await runETFScreening();
+  const snapshot = persistSnapshot(undefined, ETF_SNAPSHOT_KEY, report, {
+    sourceUpdatedAt: report.timestamp,
+  });
+  await persistSnapshotToSupabase(ETF_SNAPSHOT_KEY, snapshot, undefined, process.env);
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const action = searchParams.get('action');
   const force = searchParams.get('force') === 'true';
 
-  // 진행 상황 조회
   if (action === 'progress') {
     return NextResponse.json(getETFScreeningProgress());
   }
 
-  // 1. 캐시된 데이터 먼저 확인 (stale 포함)
   if (!force) {
-    const freshCache = getCached<ETFScreeningReport>('screening:etf');
-    if (freshCache) {
-      return NextResponse.json(freshCache, {
-        headers: {
-          'Cache-Control': 'public, max-age=60',
-          'X-ETF-Source': 'cache',
-        },
+    const cached = readSnapshot<ETFScreeningReport>(undefined, ETF_SNAPSHOT_KEY);
+    if (cached) {
+      const refreshStarted = scheduleSnapshotRefresh({
+        key: ETF_SNAPSHOT_KEY,
+        freshness: cached.snapshotMeta.freshness,
+        run: refreshEtfSnapshot,
+        onError: (refreshError) => console.error('ETF background refresh failed:', refreshError),
       });
+      return NextResponse.json(
+        { ...cached.data, snapshotMeta: cached.snapshotMeta },
+        { headers: { ...buildHeaders(cached.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } },
+      );
     }
 
-    // stale 캐시라도 제공 (백그라운드 갱신 시작)
-    const staleCache = getCached<ETFScreeningReport>(STALE_CACHE_KEY);
-    if (staleCache) {
-      // 백그라운드에서 새로운 데이터 수집 시작 (await 안 함)
-      runETFScreening().then(report => {
-        setCache('screening:etf', report, 4 * 60 * 60 * 1000);
-        setCache(STALE_CACHE_KEY, report, STALE_CACHE_TTL);
-      }).catch(err => console.error('Background ETF refresh failed:', err));
-
-      return NextResponse.json(staleCache, {
-        headers: {
-          'Cache-Control': 'public, max-age=60',
-          'X-ETF-Source': 'stale-cache',
-          'X-Refresh-Started': 'true',
-        },
+    const persisted = await readSnapshotFromSupabase<ETFScreeningReport>(ETF_SNAPSHOT_KEY);
+    if (persisted) {
+      const refreshStarted = scheduleSnapshotRefresh({
+        key: ETF_SNAPSHOT_KEY,
+        freshness: persisted.snapshotMeta.freshness,
+        run: refreshEtfSnapshot,
+        onError: (refreshError) => console.error('ETF background refresh failed:', refreshError),
       });
+      return NextResponse.json(
+        { ...persisted.data, snapshotMeta: persisted.snapshotMeta },
+        { headers: { ...buildHeaders(persisted.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } },
+      );
     }
   }
 
-  // 2. 새로운 스크리닝 실행
   try {
     const startTime = Date.now();
     const report = await runETFScreening();
     const duration = Date.now() - startTime;
-
-    // stale 캐시도 업데이트
-    setCache(STALE_CACHE_KEY, report, STALE_CACHE_TTL);
-
-    return NextResponse.json(report, {
-      headers: {
-        'Cache-Control': 'public, max-age=900, stale-while-revalidate=3600',
-        'X-ETF-Source': 'fresh',
-        'X-Response-Time': `${duration}ms`,
-      },
+    const snapshot = persistSnapshot(undefined, ETF_SNAPSHOT_KEY, report, {
+      sourceUpdatedAt: report.timestamp,
     });
+    await persistSnapshotToSupabase(ETF_SNAPSHOT_KEY, snapshot, undefined, process.env);
+
+    return NextResponse.json(
+      { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta },
+      { headers: buildHeaders(snapshot.snapshotMeta, duration) },
+    );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'ETF 스크리닝에 실패했습니다';
-    
-    // 에러 시 stale 캐시라도 반환
-    const staleCache = getCached<ETFScreeningReport>(STALE_CACHE_KEY);
-    if (staleCache) {
-      return NextResponse.json(staleCache, {
-        headers: {
-          'Cache-Control': 'public, max-age=60',
-          'X-ETF-Source': 'stale-cache-error',
-          'X-Error': message,
-        },
-      });
+    const fallback = readSnapshot<ETFScreeningReport>(undefined, ETF_SNAPSHOT_KEY);
+
+    if (fallback) {
+      const snapshot = markSnapshotAsFallback(fallback, message);
+      return NextResponse.json(
+        { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta },
+        { headers: { ...buildHeaders(snapshot.snapshotMeta), 'X-Error': message } },
+      );
+    }
+
+    const persistedFallback = await readSnapshotFromSupabase<ETFScreeningReport>(ETF_SNAPSHOT_KEY);
+    if (persistedFallback) {
+      const snapshot = markSnapshotAsFallback(persistedFallback, message);
+      return NextResponse.json(
+        { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta },
+        { headers: { ...buildHeaders(snapshot.snapshotMeta), 'X-Error': message } },
+      );
     }
 
     return NextResponse.json({ error: message }, { status: 500 });
