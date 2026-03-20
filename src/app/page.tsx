@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import type { CombinedResult, DataSource, MarketOverview, MarketQuote } from '@/types';
+import { getPartialFailureSummary } from '@/lib/partial-failure';
 
 // ─── Type Definitions ────────────────────────────────
 
@@ -634,6 +635,16 @@ function SingleResultView({ result }: { result: ScreenerResult }) {
         <div className="bg-[#3A3A3A] rounded-none border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] p-4 sm:p-6">
           <h3 className="text-lg font-bold mb-1">🔄 시장 심리 분석 상세</h3>
           <p className="text-xs text-gray-500 mb-4">시장 공포·탐욕 수준을 분석합니다. 점수가 높을수록 시장이 공포 구간(= 매수 기회)입니다.</p>
+          {(() => {
+            const partialFailure = getPartialFailureSummary(result.dataSources);
+            if (!partialFailure) return null;
+            return (
+              <div className="mb-4 border-2 border-[#C45C3E] bg-[#C45C3E]/10 rounded-none p-3">
+                <div className="text-sm font-bold text-[#FED7AA]">⚠️ 일부 심리 지표가 추정치입니다</div>
+                <div className="text-xs text-gray-300 mt-1">{partialFailure.message}</div>
+              </div>
+            );
+          })()}
           <ScoreBar
             label="VIX 공포지수 (높으면 공포)"
             score={result.sentiment.vix.score}

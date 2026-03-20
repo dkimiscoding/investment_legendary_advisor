@@ -18,6 +18,7 @@
     "src/lib/snapshots.ts",
     "src/lib/persisted-snapshots.ts",
     "src/lib/background-refresh.ts",
+    "src/lib/partial-failure.ts",
     "src/lib/snapshot-display.ts",
     "src/lib/config/scoring-thresholds.ts",
     "src/lib/validators.ts",
