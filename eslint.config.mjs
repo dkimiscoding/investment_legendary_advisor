@@ -9,7 +9,7 @@ const config = [
   ...nextCoreWebVitals,
   ...nextTypescript,
   {
-    ignores: ['.next/**', 'node_modules/**', '.tmp/**'],
+    ignores: ['.next/**', 'node_modules/**', '.tmp/**', '.worktrees/**'],
   },
   {
     rules: {
