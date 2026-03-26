@@ -219,6 +219,218 @@ function MarketHeader({
   );
 }
 
+type IndicatorType = 'vix' | 'oil' | 'dxy' | 'treasury';
+type StatusLevel = 'safe' | 'caution' | 'warning' | 'danger';
+
+interface IndicatorStatus {
+  label: string;
+  level: StatusLevel;
+  description: string;
+}
+
+const STATUS_COLORS: Record<StatusLevel, { dot: string; bar: string; badgeBg: string; badgeText: string }> = {
+  safe: { dot: 'bg-emerald-500', bar: 'bg-emerald-400', badgeBg: 'bg-emerald-50', badgeText: 'text-emerald-700' },
+  caution: { dot: 'bg-yellow-500', bar: 'bg-yellow-400', badgeBg: 'bg-yellow-50', badgeText: 'text-yellow-700' },
+  warning: { dot: 'bg-orange-500 animate-pulse', bar: 'bg-orange-400', badgeBg: 'bg-orange-50', badgeText: 'text-orange-700' },
+  danger: { dot: 'bg-red-500', bar: 'bg-red-400', badgeBg: 'bg-red-50', badgeText: 'text-red-700' },
+};
+
+function getFearGreedInfo(score: number) {
+  if (score <= 20) return { label: '극단적 공포', labelEn: 'Extreme Fear', color: 'text-red-500', description: '투자자 심리가 극단적 공포 상태입니다.' };
+  if (score <= 40) return { label: '공포', labelEn: 'Fear', color: 'text-orange-500', description: '투자자 공포 심리가 우세합니다.' };
+  if (score <= 60) return { label: '중립', labelEn: 'Neutral', color: 'text-yellow-600', description: '시장 심리가 중립 구간에 있습니다.' };
+  if (score <= 80) return { label: '탐욕', labelEn: 'Greed', color: 'text-lime-600', description: '낙관 심리가 우세해지고 있습니다.' };
+  return { label: '극단적 탐욕', labelEn: 'Extreme Greed', color: 'text-emerald-600', description: '시장이 과열에 가까운 탐욕 구간입니다.' };
+}
+
+function getIndicatorStatus(type: IndicatorType, value: number, changePct: number): IndicatorStatus {
+  switch (type) {
+    case 'vix':
+      if (value > 30) return { label: '위험', level: 'danger', description: '극단적 공포 구간' };
+      if (value > 20) return { label: '위험', level: 'danger', description: changePct > 0 ? '전일 대비 공포 심리 확대' : '공포 수준이나 진정 조짐' };
+      if (value > 15) return { label: '경계', level: 'caution', description: '보통 수준 유지' };
+      return { label: '안전', level: 'safe', description: '시장 변동성 안정' };
+    case 'oil':
+      if (value > 100) return { label: '경고', level: 'warning', description: '에너지 가격 급등·경기 둔화 우려' };
+      if (value > 85) return { label: '주의', level: 'warning', description: '인플레 압력 확대' };
+      if (value > 70) return { label: '경계', level: 'caution', description: '유가 상승세 지속' };
+      return { label: '안전', level: 'safe', description: '에너지 가격 안정' };
+    case 'dxy':
+      if (value > 108) return { label: '위험', level: 'danger', description: '달러 초강세·위험자산 압박' };
+      if (value > 103) return { label: '주의', level: 'warning', description: '강달러 지속' };
+      if (value > 98) return { label: '경계', level: 'caution', description: changePct > 0 ? '안전자산 선호 지속' : '달러 약세 전환 기대' };
+      return { label: '안전', level: 'safe', description: '약달러·위험자산 우호적' };
+    case 'treasury':
+      if (value > 4.8) return { label: '위험', level: 'danger', description: '금리 급등·시장 압박' };
+      if (value > 4.3) return { label: '위험', level: 'danger', description: '고금리 부담 확대' };
+      if (value > 3.8) return { label: '경계', level: 'caution', description: '금리 부담 증가' };
+      return { label: '안전', level: 'safe', description: '금리 환경 비교적 안정' };
+  }
+}
+
+function FearGreedGauge({ score }: { score: number }) {
+  const cx = 100, cy = 95, r = 75;
+  const segments = [
+    { start: 180, end: 144, color: '#ef4444' },
+    { start: 144, end: 108, color: '#f97316' },
+    { start: 108, end: 72, color: '#eab308' },
+    { start: 72, end: 36, color: '#84cc16' },
+    { start: 36, end: 0, color: '#22c55e' },
+  ];
+
+  function toXY(deg: number) {
+    const rad = (deg * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy - r * Math.sin(rad) };
+  }
+
+  const needleAngle = 180 - (Math.min(Math.max(score, 0), 100) / 100) * 180;
+  const needleLen = r - 12;
+  const needleTipInner = {
+    x: cx + needleLen * Math.cos((needleAngle * Math.PI) / 180),
+    y: cy - needleLen * Math.sin((needleAngle * Math.PI) / 180),
+  };
+
+  return (
+    <svg viewBox="0 0 200 110" className="w-[160px] sm:w-[180px] shrink-0">
+      {segments.map((seg, i) => {
+        const s = toXY(seg.start);
+        const e = toXY(seg.end);
+        return (
+          <path
+            key={i}
+            d={`M ${s.x} ${s.y} A ${r} ${r} 0 0 1 ${e.x} ${e.y}`}
+            fill="none"
+            stroke={seg.color}
+            strokeWidth={10}
+          />
+        );
+      })}
+      <line x1={cx} y1={cy} x2={needleTipInner.x} y2={needleTipInner.y} stroke="#111827" strokeWidth={2.5} strokeLinecap="round" />
+      <circle cx={cx} cy={cy} r={4} fill="#111827" />
+      <text x={cx - r - 2} y={cy + 16} textAnchor="middle" className="text-[9px] fill-gray-500" style={{ fontSize: '9px' }}>0</text>
+      <text x={cx} y={cy - r + 2} textAnchor="middle" className="text-[9px] fill-gray-500" style={{ fontSize: '9px' }}>50</text>
+      <text x={cx + r + 2} y={cy + 16} textAnchor="middle" className="text-[9px] fill-gray-500" style={{ fontSize: '9px' }}>100</text>
+    </svg>
+  );
+}
+
+function MarketSignalCard({
+  title,
+  quote,
+  type,
+}: {
+  title: string;
+  quote: MarketQuote;
+  type: IndicatorType;
+}) {
+  const status = getIndicatorStatus(type, quote.price, quote.changePct);
+  const styles = STATUS_COLORS[status.level];
+  const isUp = quote.changePct >= 0;
+  const changeColor = type === 'vix'
+    ? isUp ? 'text-red-500' : 'text-emerald-600'
+    : isUp ? 'text-emerald-600' : 'text-red-500';
+  const arrow = isUp ? '▲' : '▼';
+  const changeText = type === 'treasury'
+    ? `${arrow}${Math.abs(quote.change * 100).toFixed(1)}bp`
+    : `${arrow}${Math.abs(quote.changePct).toFixed(1)}%`;
+  const displayValue = type === 'oil'
+    ? `$${quote.price.toFixed(2)}`
+    : type === 'treasury'
+    ? `${quote.price.toFixed(3)}%`
+    : quote.price.toFixed(2);
+
+  return (
+    <div className="bg-[#3A3A3A] rounded-none border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] p-3 sm:p-4">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-xs text-gray-400 font-medium">{title}</span>
+        <span className={`w-2.5 h-2.5 rounded-full ${styles.dot}`} />
+      </div>
+      <div className="flex items-baseline gap-2 mb-2">
+        <span className="text-xl sm:text-2xl font-bold text-white">{displayValue}</span>
+        <span className={`text-xs font-medium ${changeColor}`}>{changeText}</span>
+      </div>
+      <div className={`h-1 rounded-full mb-2 ${styles.bar}`} />
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] text-gray-500 leading-tight">{status.description}</span>
+        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 ${styles.badgeBg} ${styles.badgeText}`}>
+          {status.label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function MarketSentimentDashboard({
+  marketData,
+  sentiment,
+  marketLoading,
+}: {
+  marketData: MarketData | null;
+  sentiment: ScreenerResult['sentiment'] | null;
+  marketLoading: boolean;
+}) {
+  const fearGreedIndex = sentiment
+    ? Math.round((1 - sentiment.totalScore / 25) * 100)
+    : null;
+  const fearGreed = fearGreedIndex != null ? getFearGreedInfo(fearGreedIndex) : null;
+
+  return (
+    <div className="bg-[#2A2A2A] rounded-none border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] p-4 sm:p-5 mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-sm sm:text-base font-semibold text-white">시장 심리 신호등</h2>
+          <p className="text-[11px] text-gray-500">VIX · 유가 · 달러 · 금리 + 현재 분석 심리 점수</p>
+        </div>
+        {marketData ? (
+          <span className="text-[11px] text-gray-500">
+            {new Date(marketData.timestamp).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })} 기준
+          </span>
+        ) : null}
+      </div>
+
+      <div className="border-b border-[#3A3A3A] pb-4 mb-4">
+        <p className="text-xs text-gray-500 font-medium mb-3">공포 & 탐욕</p>
+        {fearGreed && sentiment ? (
+          <div className="flex items-center gap-4 sm:gap-6">
+            <FearGreedGauge score={fearGreedIndex ?? 50} />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm text-gray-400 font-medium">Fear & Greed Index</p>
+              <div className="flex items-baseline gap-2 mt-0.5">
+                <span className="text-3xl sm:text-4xl font-bold text-white">{fearGreedIndex}</span>
+                <span className={`text-sm sm:text-base font-semibold ${fearGreed.color}`}>{fearGreed.labelEn}</span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-gray-500 mt-1">{fearGreed.description}</p>
+              <p className="text-[11px] sm:text-xs text-gray-500 mt-2">
+                현재 종목 분석의 심리 원점수는 {sentiment.totalScore}/25점입니다.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="text-sm text-gray-500 py-4">
+            종목 분석 결과가 있을 때 공포·탐욕 지수를 함께 표시합니다.
+          </div>
+        )}
+      </div>
+
+      <div>
+        <p className="text-xs text-gray-500 font-medium mb-3">시장 지표</p>
+        {marketLoading ? (
+          <div className="grid grid-cols-2 gap-3">
+            {[...Array(4)].map((_, i) => <SkeletonPulse key={i} className="h-28 rounded-none" />)}
+          </div>
+        ) : marketData ? (
+          <div className="grid grid-cols-2 gap-3">
+            <MarketSignalCard title="VIX 공포지수" quote={marketData.vix} type="vix" />
+            {marketData.wtiOil ? <MarketSignalCard title="WTI 유가" quote={marketData.wtiOil} type="oil" /> : null}
+            {marketData.dxy ? <MarketSignalCard title="DXY 달러지수" quote={marketData.dxy} type="dxy" /> : null}
+            <MarketSignalCard title="10년 국채금리" quote={marketData.treasury10y} type="treasury" />
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 // ─── Skeleton Loading ───────────────────────────────
 
 function AnalysisSkeleton() {
@@ -952,6 +1164,7 @@ export default function Home() {
 
   const isMulti = results.length > 1;
   const activeResult = results.find((r) => r.ticker === activeTab);
+  const focusResult = activeResult ?? results[0] ?? null;
 
   return (
     <main className="min-h-screen bg-[#2A2A2A] text-white">
@@ -992,6 +1205,12 @@ export default function Home() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Market Header */}
         <MarketHeader data={marketData} loading={marketLoading} />
+
+        <MarketSentimentDashboard
+          marketData={marketData}
+          sentiment={focusResult?.sentiment ?? null}
+          marketLoading={marketLoading}
+        />
 
         {/* Search */}
         <div className="flex gap-2 sm:gap-3 mb-3">
