@@ -59,12 +59,52 @@ interface YFQuoteSummary {
   summaryDetail?: Record<string, number | undefined>;
 }
 
+interface ChartDataDeps {
+  historical?: (ticker: string, options: { period1: Date; period2: Date; interval: '1d' }) => Promise<YFHistoricalRow[]>;
+  chart?: (ticker: string, options: { period1: Date; period2: Date; interval: '1d' }) => Promise<unknown>;
+  now?: () => Date;
+}
+
+function isValidHistoricalRow(row: YFHistoricalRow | null | undefined): row is YFHistoricalRow {
+  return !!row
+    && row.date instanceof Date
+    && !Number.isNaN(row.date.getTime())
+    && Number.isFinite(row.close)
+    && Number.isFinite(row.volume);
+}
+
+function toHistoricalRowsFromChartResult(result: unknown): YFHistoricalRow[] {
+  const quotes = (result as { quotes?: Array<{ date?: Date | number | string; close?: number | null; volume?: number | null }> } | null)?.quotes;
+  if (!Array.isArray(quotes)) return [];
+
+  return quotes.flatMap((quote) => {
+    const dateValue = quote.date;
+    const date = dateValue instanceof Date
+      ? dateValue
+      : typeof dateValue === 'number'
+      ? new Date(dateValue * 1000)
+      : typeof dateValue === 'string'
+      ? new Date(dateValue)
+      : null;
+
+    if (!date || Number.isNaN(date.getTime()) || !Number.isFinite(quote.close)) {
+      return [];
+    }
+
+    return [{
+      date,
+      close: quote.close as number,
+      volume: Number.isFinite(quote.volume) ? quote.volume ?? 0 : 0,
+    }];
+  });
+}
+
 // ─── 차트 데이터 수집 ────────────────────────────────
 
 /**
  * 차트 데이터 수집 (캐시 적용)
  */
-export async function fetchChartData(ticker: string): Promise<ChartData> {
+export async function fetchChartData(ticker: string, deps?: ChartDataDeps): Promise<ChartData> {
   const cacheKey = `chart:${ticker}`;
   const cached = getCached<ChartData>(cacheKey);
   if (cached) {
@@ -75,17 +115,38 @@ export async function fetchChartData(ticker: string): Promise<ChartData> {
   log.info(`차트 데이터 수집 시작: ${ticker}`);
   const yf = await getYF();
 
-  const endDate = new Date();
+  const endDate = deps?.now?.() ?? new Date();
   const startDate = new Date();
+  startDate.setTime(endDate.getTime());
   startDate.setDate(startDate.getDate() - 300); // 200일선 + 여유
 
-  const result = await yf.historical(ticker, {
-    period1: startDate,
-    period2: endDate,
-    interval: '1d',
-  }) as YFHistoricalRow[];
+  const historicalFetch = deps?.historical ?? ((symbol: string, options: { period1: Date; period2: Date; interval: '1d' }) =>
+    yf.historical(symbol, options) as Promise<YFHistoricalRow[]>);
+  const chartFetch: NonNullable<ChartDataDeps['chart']> = deps?.chart ?? ((symbol, options) =>
+    (yf as unknown as { chart: NonNullable<ChartDataDeps['chart']> }).chart(symbol, options));
 
-  if (!result || result.length === 0) {
+  let result: YFHistoricalRow[];
+  try {
+    result = await historicalFetch(ticker, {
+      period1: startDate,
+      period2: endDate,
+      interval: '1d',
+    });
+
+    if (!result?.length || result.some((row) => !isValidHistoricalRow(row))) {
+      throw new Error(`${ticker}: historical 응답에 null/invalid 값 포함`);
+    }
+  } catch (error) {
+    log.warn(`${ticker}: historical 차트 데이터 실패, chart 폴백 시도`, error instanceof Error ? error.message : error);
+    const chartResult = await chartFetch(ticker, {
+      period1: startDate,
+      period2: endDate,
+      interval: '1d',
+    });
+    result = toHistoricalRowsFromChartResult(chartResult);
+  }
+
+  if (!result.length) {
     throw new Error(`${ticker}: 차트 데이터를 가져올 수 없습니다`);
   }
 
