@@ -60,3 +60,11 @@ npm run build
 - `npm run build`
 
 일부 lint warning은 남아 있을 수 있지만, 코드 변경 작업은 위 검증을 기준으로 진행합니다.
+
+## 최근 릴리즈 문서
+
+- `docs/releases/2026-03-26-trust-and-market-context-update.md`
+- `docs/releases/2026-03-26-production-qa-checklist.md`
+- `docs/releases/2026-03-26-deployment-announcement-ko.md`
+- `docs/releases/2026-03-26-pr-summary.md`
+- `docs/postmortems/2026-03-26-yahoo-historical-partial-null.md`
