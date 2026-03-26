@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scheduleSnapshotRefresh } from '@/lib/background-refresh';
 import { runETFScreening, getETFScreeningProgress, ETFScreeningReport } from '@/lib/screeners/etf-auto-screener';
+import { buildETFResponse } from '@/lib/response-metadata';
 import { persistSnapshotToSupabase, readSnapshotFromSupabase } from '@/lib/persisted-snapshots';
 import { markSnapshotAsFallback, persistSnapshot, readSnapshot, type SnapshotMeta } from '@/lib/snapshots';
 
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
         onError: (refreshError) => console.error('ETF background refresh failed:', refreshError),
       });
       return NextResponse.json(
-        { ...cached.data, snapshotMeta: cached.snapshotMeta },
+        buildETFResponse(cached.data, cached.snapshotMeta),
         { headers: { ...buildHeaders(cached.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } },
       );
     }
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
         onError: (refreshError) => console.error('ETF background refresh failed:', refreshError),
       });
       return NextResponse.json(
-        { ...persisted.data, snapshotMeta: persisted.snapshotMeta },
+        buildETFResponse(persisted.data, persisted.snapshotMeta),
         { headers: { ...buildHeaders(persisted.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } },
       );
     }
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
     await persistSnapshotToSupabase(ETF_SNAPSHOT_KEY, snapshot, undefined, process.env);
 
     return NextResponse.json(
-      { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta },
+      buildETFResponse(snapshot.data, snapshot.snapshotMeta),
       { headers: buildHeaders(snapshot.snapshotMeta, duration) },
     );
   } catch (error: unknown) {
@@ -86,7 +87,7 @@ export async function GET(request: NextRequest) {
     if (fallback) {
       const snapshot = markSnapshotAsFallback(fallback, message);
       return NextResponse.json(
-        { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta },
+        buildETFResponse(snapshot.data, snapshot.snapshotMeta),
         { headers: { ...buildHeaders(snapshot.snapshotMeta), 'X-Error': message } },
       );
     }
@@ -95,7 +96,7 @@ export async function GET(request: NextRequest) {
     if (persistedFallback) {
       const snapshot = markSnapshotAsFallback(persistedFallback, message);
       return NextResponse.json(
-        { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta },
+        buildETFResponse(snapshot.data, snapshot.snapshotMeta),
         { headers: { ...buildHeaders(snapshot.snapshotMeta), 'X-Error': message } },
       );
     }

@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import SnapshotStatusBanner from '@/components/SnapshotStatusBanner';
-import type { ConsensusStock, LegendPick, LegendRecommendation, LegendsResponse } from '@/types';
+import type { ReliabilitySummary } from '@/lib/reliability';
+import type { SnapshotMeta } from '@/lib/snapshots';
+import type { ConsensusStock, LegendPick, LegendRecommendation, LegendsResponse, ScreeningUniverseMeta } from '@/types';
 import {
   LEGEND_COLORS,
   RISK_PROFILE_KO,
@@ -13,12 +15,18 @@ import {
 
 // ─── 타입 정의 ───────────────────────────────────────
 
+type LegendsPageData = LegendsResponse & {
+  snapshotMeta?: SnapshotMeta;
+  reliability?: ReliabilitySummary;
+  universeMeta?: ScreeningUniverseMeta;
+};
+
 // ─── 상수 ────────────────────────────────────────────
 
 // ─── 메인 컴포넌트 ──────────────────────────────────
 
 export default function LegendsPage() {
-  const [data, setData] = useState<LegendsResponse | null>(null);
+  const [data, setData] = useState<LegendsPageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<string>('buffett');
@@ -29,7 +37,7 @@ export default function LegendsPage() {
     try {
       const res = await fetch('/api/screening/legends');
       if (!res.ok) throw new Error('데이터를 불러오는데 실패했습니다');
-      const json: LegendsResponse = await res.json();
+      const json: LegendsPageData = await res.json();
       setData(json);
       if (json.legends.length > 0 && !json.legends.find(l => l.legendId === activeTab)) {
         setActiveTab(json.legends[0].legendId);
@@ -114,7 +122,11 @@ export default function LegendsPage() {
           </p>
 
           <div className="mt-3">
-            <SnapshotStatusBanner snapshotMeta={data.snapshotMeta} />
+            <SnapshotStatusBanner
+              snapshotMeta={data.snapshotMeta}
+              reliability={data.reliability}
+              universeMeta={data.universeMeta}
+            />
           </div>
 
           {/* Market Summary Bar */}

@@ -2,6 +2,9 @@
 // 미국주식 투자분석 도구 - 타입 정의
 // ============================================
 
+import type { ReliabilitySummary as SnapshotReliabilitySummary } from '@/lib/reliability';
+import type { ScoreDisplay as NormalizedScoreDisplay } from '@/lib/score-display';
+
 // --- Market Breadth ---
 export interface MarketBreadthData {
   pctAbove200: number;
@@ -237,6 +240,7 @@ export interface CombinedResult {
   totalScore: number;  // 0-70 (차트25 + 주가20 + 역발상25)
   finalVerdict: 'very_bullish' | 'bullish' | 'neutral' | 'bearish' | 'very_bearish';
   actionGuide: string;
+  scoreDisplay?: ScoreDisplayBreakdown;
 }
 
 // --- Top 20 ---
@@ -248,6 +252,21 @@ export interface Top20Stock {
   sentimentScore: number;
   totalScore: number;
   tier: 1 | 2 | 3;
+}
+
+export interface ScoreDisplayBreakdown {
+  total: NormalizedScoreDisplay;
+  chart?: NormalizedScoreDisplay;
+  valuation?: NormalizedScoreDisplay;
+  sentiment?: NormalizedScoreDisplay;
+  dividend?: NormalizedScoreDisplay;
+  masters?: NormalizedScoreDisplay;
+}
+
+export interface ResponseMetadata {
+  scoreDisplay?: ScoreDisplayBreakdown;
+  reliability?: SnapshotReliabilitySummary;
+  universeMeta?: ScreeningUniverseMeta;
 }
 
 // --- Screening (자동 스크리닝) ---
@@ -276,10 +295,16 @@ export interface ScreeningResult {
   lastUpdated: string;
 }
 
-export * from './legends';
+export interface ScreeningUniverseMeta {
+  label: string;
+  totalCandidates: number;
+  rankingBasis: 'latest-analysis-score';
+  segments: string[];
+}
 
 export interface DailyScreeningReport {
   date: string;
+  universeMeta?: ScreeningUniverseMeta;
   marketSummary: {
     sp500: { price: number; change: number };
     vix: { value: number; level: string };
@@ -307,3 +332,5 @@ export interface DailyScreeningReport {
   };
   updatedAt: string;
 }
+
+export * from './legends';

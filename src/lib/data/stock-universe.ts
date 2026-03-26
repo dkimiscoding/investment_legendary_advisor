@@ -5,6 +5,8 @@
  * 중복 제거 후 총 ~130개 종목을 주기적으로 스크리닝합니다.
  */
 
+import type { ScreeningUniverseMeta } from '@/types';
+
 // ─── 확장된 종목 유니버스 ────────────────────────────────────
 
 export const STOCK_UNIVERSE: Record<string, string[]> = {
@@ -371,6 +373,15 @@ export function getSector(ticker: string): string {
  */
 export function getTotalStockCount(): number {
   return ALL_TICKERS.length;
+}
+
+export function getScreeningUniverseMeta(): ScreeningUniverseMeta {
+  return {
+    label: 'S&P500 Top 100 + Dow 30 + Nasdaq Top 50',
+    totalCandidates: getTotalStockCount(),
+    rankingBasis: 'latest-analysis-score',
+    segments: ['sp500Top100', 'dowJones30', 'nasdaqTop50'],
+  };
 }
 
 /**

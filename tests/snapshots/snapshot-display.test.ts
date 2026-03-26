@@ -12,7 +12,7 @@ test('returns fresh display metadata', () => {
     errorSummary: null,
   });
 
-  assert.equal(display.label, '최신 스냅샷');
+  assert.equal(display.label, '최신 계산 결과');
   assert.equal(display.tone, 'fresh');
 });
 
@@ -26,7 +26,7 @@ test('returns fallback display metadata with warning text', () => {
     errorSummary: 'upstream failed',
   });
 
-  assert.equal(display.label, '대체 스냅샷');
+  assert.equal(display.label, '대체 결과 표시 중');
   assert.equal(display.tone, 'fallback');
   assert.ok(display.description.includes('이전 성공 결과'));
 });

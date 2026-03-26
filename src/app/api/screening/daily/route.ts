@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { scheduleSnapshotRefresh } from '@/lib/background-refresh';
+import { buildDailyResponse } from '@/lib/response-metadata';
 import { persistSnapshotToSupabase, readSnapshotFromSupabase } from '@/lib/persisted-snapshots';
 import { markSnapshotAsFallback, persistSnapshot, readSnapshot, type SnapshotMeta } from '@/lib/snapshots';
 import { runDailyScreening, getScreeningProgress } from '@/lib/screeners/auto-screener';
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
           onError: (refreshError) => console.error('Daily background refresh failed:', refreshError),
         });
         return NextResponse.json(
-          { ...cached.data, snapshotMeta: cached.snapshotMeta },
+          buildDailyResponse(cached.data, cached.snapshotMeta),
           { headers: { ...buildHeaders(cached.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } },
         );
       }
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
           onError: (refreshError) => console.error('Daily background refresh failed:', refreshError),
         });
         return NextResponse.json(
-          { ...persisted.data, snapshotMeta: persisted.snapshotMeta },
+          buildDailyResponse(persisted.data, persisted.snapshotMeta),
           { headers: { ...buildHeaders(persisted.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } },
         );
       }
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest) {
     await persistSnapshotToSupabase(DAILY_SNAPSHOT_KEY, snapshot, undefined, process.env);
 
     return NextResponse.json(
-      { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta },
+      buildDailyResponse(snapshot.data, snapshot.snapshotMeta),
       { headers: buildHeaders(snapshot.snapshotMeta) },
     );
   } catch (error: unknown) {
@@ -85,7 +86,7 @@ export async function GET(request: NextRequest) {
     if (fallback) {
       const snapshot = markSnapshotAsFallback(fallback, message);
       return NextResponse.json(
-        { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta, progress: getScreeningProgress() },
+        { ...buildDailyResponse(snapshot.data, snapshot.snapshotMeta), progress: getScreeningProgress() },
         { headers: buildHeaders(snapshot.snapshotMeta) },
       );
     }
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
     if (persistedFallback) {
       const snapshot = markSnapshotAsFallback(persistedFallback, message);
       return NextResponse.json(
-        { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta, progress: getScreeningProgress() },
+        { ...buildDailyResponse(snapshot.data, snapshot.snapshotMeta), progress: getScreeningProgress() },
         { headers: buildHeaders(snapshot.snapshotMeta) },
       );
     }

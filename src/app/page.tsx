@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import type { CombinedResult, DataSource, MarketOverview, MarketQuote } from '@/types';
 import { getPartialFailureSummary } from '@/lib/partial-failure';
+import { toNormalizedScore } from '@/lib/score-display';
 
 // ─── Type Definitions ────────────────────────────────
 
@@ -31,6 +32,32 @@ function getScoreGrade(score: number, max: number): { label: string; color: stri
   if (pct >= 40) return { label: '보통', color: 'text-[#D4F94E]' };
   if (pct >= 20) return { label: '낮음', color: 'text-[#C45C3E]' };
   return { label: '매우 낮음', color: 'text-[#C45C3E]' };
+}
+
+function getTotalRawMax(result: ScreenerResult): number {
+  return result.dividend ? 90 : 70;
+}
+
+function getTotalDisplay(result: ScreenerResult) {
+  return result.scoreDisplay?.total ?? toNormalizedScore(result.totalScore, getTotalRawMax(result));
+}
+
+function getTrustSummary(result: ScreenerResult) {
+  const partialFailure = getPartialFailureSummary(result.dataSources);
+  if (!partialFailure) {
+    return {
+      tone: 'high' as const,
+      title: '데이터 신뢰도 높음',
+      description: '핵심 심리 지표를 포함해 현재 기준 데이터로 계산된 결과입니다.',
+    };
+  }
+
+  return {
+    tone: 'caution' as const,
+    title: '데이터 신뢰도 주의',
+    description: partialFailure.message,
+    fallbackMetrics: partialFailure.fallbackMetrics,
+  };
 }
 
 // ─── Helper Components ──────────────────────────────
@@ -89,7 +116,7 @@ function ScoreBar({
   );
 }
 
-function GaugeCircle({ score, max, label }: { score: number; max: number; label: string }) {
+function GaugeCircle({ score, max, label, normalizedLabel }: { score: number; max: number; label: string; normalizedLabel?: string }) {
   const pct = Math.min((score / max) * 100, 100);
   const circumference = 2 * Math.PI * 45;
   const offset = circumference - (pct / 100) * circumference;
@@ -119,6 +146,7 @@ function GaugeCircle({ score, max, label }: { score: number; max: number; label:
       </div>
       <div className="mt-6 text-sm font-medium text-gray-300">{label}</div>
       <div className={`text-xs font-medium mt-1 ${grade.color}`}>{grade.label}</div>
+      {normalizedLabel ? <div className="text-[11px] text-gray-500 mt-1">{normalizedLabel}</div> : null}
     </div>
   );
 }
@@ -287,14 +315,18 @@ function ComparisonTable({ results }: { results: ScreenerResult[] }) {
             </tr>
           )}
           <tr className="bg-[#2A2A2A]/50">
-            <td className="py-3 px-2 text-white font-bold">종합 점수 (70점 만점)</td>
-            {results.map((r) => (
-              <td key={r.ticker} className="py-3 px-2 text-center">
-                <span className="font-bold text-lg text-[#D4F94E]">
-                  {r.totalScore}
-                </span>
-              </td>
-            ))}
+            <td className="py-3 px-2 text-white font-bold">종합 점수 (100점 환산)</td>
+            {results.map((r) => {
+              const totalDisplay = getTotalDisplay(r);
+              return (
+                <td key={r.ticker} className="py-3 px-2 text-center">
+                  <span className="font-bold text-lg text-[#D4F94E]">
+                    {totalDisplay.normalizedScore}/100
+                  </span>
+                  <div className="text-[11px] text-gray-500">원점수 {totalDisplay.rawScore}/{totalDisplay.rawMaxScore}</div>
+                </td>
+              );
+            })}
           </tr>
           <tr>
             <td className="py-2 px-2 text-gray-400">판정</td>
@@ -475,7 +507,7 @@ function ComparisonChart({ results }: { results: ScreenerResult[] }) {
                   fontSize="12"
                   fontWeight="bold"
                 >
-                  종합 {r.totalScore}/70점
+                  {(() => { const totalDisplay = getTotalDisplay(r); return `종합 ${totalDisplay.normalizedScore}/100 (${totalDisplay.rawScore}/${totalDisplay.rawMaxScore})`; })()}
                 </text>
               </g>
             );
@@ -504,9 +536,23 @@ function ComparisonChart({ results }: { results: ScreenerResult[] }) {
 
 function SingleResultView({ result }: { result: ScreenerResult }) {
   const v = VERDICT_STYLES[result.finalVerdict];
+  const totalDisplay = getTotalDisplay(result);
+  const trustSummary = getTrustSummary(result);
 
   return (
     <div className="space-y-6 sm:space-y-8">
+      <div className={`rounded-none border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] p-4 ${trustSummary.tone === 'high' ? 'bg-[#D4F94E]/10 text-[#D4F94E]' : 'bg-[#C45C3E]/10 text-[#FED7AA]'}`}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="text-sm font-black">{trustSummary.title}</div>
+            <div className="text-xs opacity-90">{trustSummary.description}</div>
+          </div>
+          {'fallbackMetrics' in trustSummary && trustSummary.fallbackMetrics ? (
+            <div className="text-[11px] font-bold opacity-90">영향 지표: {trustSummary.fallbackMetrics.join(', ')}</div>
+          ) : null}
+        </div>
+      </div>
+
       {/* Verdict Banner */}
       <div className={`${v.bg} ${v.text} rounded-none border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] p-4 sm:p-6`}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -519,36 +565,53 @@ function SingleResultView({ result }: { result: ScreenerResult }) {
           </div>
           <div className="text-right shrink-0">
             <div className="text-3xl sm:text-5xl font-bold">
-              {result.totalScore}
-              <span className="text-lg sm:text-2xl">/70점</span>
+              {totalDisplay.normalizedScore}
+              <span className="text-lg sm:text-2xl">/100</span>
             </div>
-            <div className="text-xs sm:text-sm opacity-75 mt-1">점수가 높을수록 매수에 유리</div>
+            <div className="text-xs sm:text-sm opacity-75 mt-1">원점수 {totalDisplay.rawScore}/{totalDisplay.rawMaxScore}</div>
           </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-[#3A3A3A] rounded-none border-2 border-[#1A1A1A] p-4">
+          <div className="text-xs text-gray-500 mb-1">차트 / 가치 / 심리 결론을 묶은 총점</div>
+          <div className="text-2xl font-black text-[#D4F94E]">{totalDisplay.displayText}</div>
+          <div className="text-xs text-gray-400 mt-1">비교용 표시는 100점 환산, 내부 계산은 원점수 체계 유지</div>
+        </div>
+        <div className="bg-[#3A3A3A] rounded-none border-2 border-[#1A1A1A] p-4">
+          <div className="text-xs text-gray-500 mb-1">핵심 판정</div>
+          <div className="text-lg font-black text-white">{v.emoji} {v.label}</div>
+          <div className="text-xs text-gray-400 mt-1">{v.guide}</div>
+        </div>
+        <div className="bg-[#3A3A3A] rounded-none border-2 border-[#1A1A1A] p-4">
+          <div className="text-xs text-gray-500 mb-1">액션 가이드</div>
+          <div className="text-sm text-white leading-relaxed">{result.actionGuide}</div>
         </div>
       </div>
 
       {/* 점수 해석 가이드 */}
       <div className="bg-[#3A3A3A] rounded-none border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] p-4 text-sm">
-        <div className="text-xs text-gray-500 mb-2 font-medium">📖 점수 해석 가이드 (70점 만점 기준)</div>
+        <div className="text-xs text-gray-500 mb-2 font-medium">📖 점수 해석 가이드 (화면 표시는 100점 환산)</div>
         <div className="flex flex-wrap gap-2 text-xs">
-          <span className="px-2 py-1 bg-[#D4F94E]/20 text-[#D4F94E] rounded">🟢 53점 이상: 강력 매수 신호</span>
-          <span className="px-2 py-1 bg-[#A8C93E]/20 text-green-300 rounded">🟡 42~52점: 매수 긍정적</span>
-          <span className="px-2 py-1 bg-[#52525B]/30 text-gray-300 rounded">⚪ 28~41점: 중립 (관망)</span>
-          <span className="px-2 py-1 bg-[#C45C3E]/20 text-[#C45C3E] rounded">🟠 18~27점: 매수 주의</span>
-          <span className="px-2 py-1 bg-[#C45C3E]/20 text-[#C45C3E] rounded">🔴 18점 미만: 과열 경고</span>
+          <span className="px-2 py-1 bg-[#D4F94E]/20 text-[#D4F94E] rounded">🟢 76/100 이상: 강력 매수 신호</span>
+          <span className="px-2 py-1 bg-[#A8C93E]/20 text-green-300 rounded">🟡 60~75/100: 매수 긍정적</span>
+          <span className="px-2 py-1 bg-[#52525B]/30 text-gray-300 rounded">⚪ 40~59/100: 중립 (관망)</span>
+          <span className="px-2 py-1 bg-[#C45C3E]/20 text-[#C45C3E] rounded">🟠 26~39/100: 매수 주의</span>
+          <span className="px-2 py-1 bg-[#C45C3E]/20 text-[#C45C3E] rounded">🔴 25/100 이하: 과열 경고</span>
         </div>
       </div>
 
       {/* 3 Gauges */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
         <div className="bg-[#3A3A3A] rounded-none border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] p-4 sm:p-6 text-center">
-          <GaugeCircle score={result.chart.scores.total} max={25} label="📈 차트 분석 (기술적 추세)" />
+          <GaugeCircle score={result.chart.scores.total} max={25} label="📈 차트 분석 (기술적 추세)" normalizedLabel={result.scoreDisplay?.chart?.displayText} />
         </div>
         <div className="bg-[#3A3A3A] rounded-none border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] p-4 sm:p-6 text-center">
-          <GaugeCircle score={result.valuation.scores.total} max={20} label="💰 가치 평가 (적정가 분석)" />
+          <GaugeCircle score={result.valuation.scores.total} max={20} label="💰 가치 평가 (적정가 분석)" normalizedLabel={result.scoreDisplay?.valuation?.displayText} />
         </div>
         <div className="bg-[#3A3A3A] rounded-none border-2 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] p-4 sm:p-6 text-center">
-          <GaugeCircle score={result.sentiment.totalScore} max={25} label="🔄 시장 심리 (공포·탐욕 분석)" />
+          <GaugeCircle score={result.sentiment.totalScore} max={25} label="🔄 시장 심리 (공포·탐욕 분석)" normalizedLabel={result.scoreDisplay?.sentiment?.displayText} />
         </div>
       </div>
 
