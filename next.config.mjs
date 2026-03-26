@@ -1,9 +1,16 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // ESLint 오류 빌드 차단 해제 (circular JSON warning 비활성화)
   eslint: {
     ignoreDuringBuilds: true,
   },
+  outputFileTracingRoot: __dirname,
   async headers() {
     return [
       {
