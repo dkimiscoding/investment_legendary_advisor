@@ -276,10 +276,16 @@ export interface ScreeningResult {
   lastUpdated: string;
 }
 
-export * from './legends';
+export interface ScreeningUniverseMeta {
+  label: string;
+  totalCandidates: number;
+  rankingBasis: 'latest-analysis-score';
+  segments: string[];
+}
 
 export interface DailyScreeningReport {
   date: string;
+  universeMeta?: ScreeningUniverseMeta;
   marketSummary: {
     sp500: { price: number; change: number };
     vix: { value: number; level: string };
@@ -307,3 +313,5 @@ export interface DailyScreeningReport {
   };
   updatedAt: string;
 }
+
+export * from './legends';

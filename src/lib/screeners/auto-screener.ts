@@ -22,7 +22,7 @@ import { calculateChartScore } from './chart-screener';
 import { calculateValuationScore } from './valuation-screener';
 import { calculateSentimentScore } from './sentiment-screener';
 import { calculateDividendScore } from './dividend-screener';
-import { getAllTickers, STOCK_NAMES, SECTOR_MAP, getCategoryForTicker } from '../data/stock-universe';
+import { getAllTickers, STOCK_NAMES, SECTOR_MAP, getCategoryForTicker, getScreeningUniverseMeta } from '../data/stock-universe';
 import { DIVIDEND_ARISTOCRATS } from '../data/dividend-aristocrats';
 import { createLogger } from '../logger';
 
@@ -366,6 +366,7 @@ export async function runDailyScreening(forceRefresh: boolean = false): Promise<
 
     const report: DailyScreeningReport = {
       date: new Date().toISOString().split('T')[0],
+      universeMeta: getScreeningUniverseMeta(),
       marketSummary: {
         sp500: { price: sp500Price, change: sp500Change },
         vix: { value: vixValue, level: getVixLevel(vixValue) },
