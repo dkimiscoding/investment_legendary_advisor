@@ -384,6 +384,8 @@ export async function fetchMarketOverview(): Promise<MarketOverview> {
     { key: 'nasdaq', ticker: '^IXIC', label: 'NASDAQ' },
     { key: 'vix', ticker: '^VIX', label: 'VIX' },
     { key: 'treasury10y', ticker: '^TNX', label: 'US 10Y' },
+    { key: 'wtiOil', ticker: 'CL=F', label: 'WTI Oil' },
+    { key: 'dxy', ticker: 'DX-Y.NYB', label: 'DXY' },
   ] as const;
 
   const quotes = await Promise.all(
@@ -403,6 +405,8 @@ export async function fetchMarketOverview(): Promise<MarketOverview> {
     nasdaq: format(quotes[1] as YFQuote | null, tickerMap[1].label, tickerMap[1].ticker),
     vix: format(quotes[2] as YFQuote | null, tickerMap[2].label, tickerMap[2].ticker),
     treasury10y: format(quotes[3] as YFQuote | null, tickerMap[3].label, tickerMap[3].ticker),
+    wtiOil: format(quotes[4] as YFQuote | null, tickerMap[4].label, tickerMap[4].ticker),
+    dxy: format(quotes[5] as YFQuote | null, tickerMap[5].label, tickerMap[5].ticker),
     timestamp: new Date().toISOString(),
   };
 

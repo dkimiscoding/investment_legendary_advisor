@@ -188,6 +188,8 @@ export interface MarketOverview {
   nasdaq: MarketQuote;
   vix: MarketQuote;
   treasury10y: MarketQuote;
+  wtiOil?: MarketQuote;
+  dxy?: MarketQuote;
   timestamp: string;
 }
 
