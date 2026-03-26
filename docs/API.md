@@ -36,6 +36,7 @@
   - 밸류에이션 20점
   - 심리 25점
 - 선택적으로 배당/투자 대가 해석이 함께 포함될 수 있음
+- 응답은 `scoreDisplay`를 포함할 수 있으며, 이는 100점 환산 표시와 원점수 병기를 위한 메타데이터입니다
 
 ## 스크리닝 API
 
@@ -83,6 +84,20 @@ PEG = PER / EPS 성장률
 ## Snapshot 메타데이터
 
 주요 스크리닝 응답(`/api/screening/daily`, `/api/screening/etf`, `/api/screening/legends`)은 `snapshotMeta`를 포함할 수 있습니다.
+
+또한 화면 신뢰도/정렬 정보를 위해 아래 메타데이터를 함께 포함할 수 있습니다.
+
+- `reliability`
+  - `level: high | medium | caution`
+  - `freshness`
+  - `fallbackMetrics`
+  - `generatedAt`
+  - `sourceUpdatedAt`
+- `universeMeta`
+  - `label`
+  - `totalCandidates`
+  - `rankingBasis`
+
 
 ```json
 {

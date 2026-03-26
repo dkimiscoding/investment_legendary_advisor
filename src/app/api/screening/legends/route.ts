@@ -4,6 +4,8 @@ import { scheduleSnapshotRefresh } from '@/lib/background-refresh';
 import { persistSnapshotToSupabase, readSnapshotFromSupabase } from '@/lib/persisted-snapshots';
 import { markSnapshotAsFallback, persistSnapshot, readSnapshot, type SnapshotMeta } from '@/lib/snapshots';
 import { runDailyScreening } from '@/lib/screeners/auto-screener';
+import { buildLegendDetailResponse, buildLegendsResponse } from '@/lib/response-metadata';
+import { getScreeningUniverseMeta } from '@/lib/data/stock-universe';
 import type { LegendsResponse } from '@/types';
 
 export const maxDuration = 300;
@@ -27,7 +29,10 @@ function selectLegendResponse(recommendations: LegendsResponse, legendId: string
 
 async function refreshLegendsSnapshot(): Promise<void> {
   const screeningReport = await runDailyScreening(true);
-  const recommendations = buildLegendRecommendations({ report: screeningReport });
+  const recommendations = {
+    ...buildLegendRecommendations({ report: screeningReport }),
+    universeMeta: screeningReport.universeMeta ?? getScreeningUniverseMeta(),
+  };
   const snapshot = persistSnapshot(undefined, LEGENDS_SNAPSHOT_KEY, recommendations, {
     sourceUpdatedAt: recommendations.updatedAt,
   });
@@ -54,11 +59,14 @@ export async function GET(request: NextRequest) {
           if (!filtered) {
             return NextResponse.json({ error: '해당 레전드를 찾을 수 없습니다' }, { status: 404 });
           }
-          return NextResponse.json(filtered, { headers: { ...buildHeaders(cached.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } });
+          return NextResponse.json(
+            buildLegendDetailResponse(filtered, cached.data, cached.snapshotMeta),
+            { headers: { ...buildHeaders(cached.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } },
+          );
         }
 
         return NextResponse.json(
-          { ...cached.data, snapshotMeta: cached.snapshotMeta },
+          buildLegendsResponse(cached.data, cached.snapshotMeta),
           { headers: { ...buildHeaders(cached.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } },
         );
       }
@@ -76,18 +84,24 @@ export async function GET(request: NextRequest) {
           if (!filtered) {
             return NextResponse.json({ error: '해당 레전드를 찾을 수 없습니다' }, { status: 404 });
           }
-          return NextResponse.json(filtered, { headers: { ...buildHeaders(persisted.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } });
+          return NextResponse.json(
+            buildLegendDetailResponse(filtered, persisted.data, persisted.snapshotMeta),
+            { headers: { ...buildHeaders(persisted.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } },
+          );
         }
 
         return NextResponse.json(
-          { ...persisted.data, snapshotMeta: persisted.snapshotMeta },
+          buildLegendsResponse(persisted.data, persisted.snapshotMeta),
           { headers: { ...buildHeaders(persisted.snapshotMeta), 'X-Refresh-Started': String(refreshStarted) } },
         );
       }
     }
 
     const screeningReport = await runDailyScreening(forceRefresh);
-    const recommendations = buildLegendRecommendations({ report: screeningReport });
+    const recommendations = {
+      ...buildLegendRecommendations({ report: screeningReport }),
+      universeMeta: screeningReport.universeMeta ?? getScreeningUniverseMeta(),
+    };
     const snapshot = persistSnapshot(undefined, LEGENDS_SNAPSHOT_KEY, recommendations, {
       sourceUpdatedAt: recommendations.updatedAt,
     });
@@ -98,11 +112,11 @@ export async function GET(request: NextRequest) {
       if (!filtered) {
         return NextResponse.json({ error: '해당 레전드를 찾을 수 없습니다' }, { status: 404 });
       }
-      return NextResponse.json(filtered, { headers: buildHeaders(snapshot.snapshotMeta) });
+      return NextResponse.json(buildLegendDetailResponse(filtered, snapshot.data, snapshot.snapshotMeta), { headers: buildHeaders(snapshot.snapshotMeta) });
     }
 
     return NextResponse.json(
-      { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta },
+      buildLegendsResponse(snapshot.data, snapshot.snapshotMeta),
       { headers: buildHeaders(snapshot.snapshotMeta) },
     );
   } catch (error: unknown) {
@@ -116,11 +130,11 @@ export async function GET(request: NextRequest) {
         if (!filtered) {
           return NextResponse.json({ error: '해당 레전드를 찾을 수 없습니다' }, { status: 404 });
         }
-        return NextResponse.json(filtered, { headers: buildHeaders(snapshot.snapshotMeta) });
+        return NextResponse.json(buildLegendDetailResponse(filtered, snapshot.data, snapshot.snapshotMeta), { headers: buildHeaders(snapshot.snapshotMeta) });
       }
 
       return NextResponse.json(
-        { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta },
+        buildLegendsResponse(snapshot.data, snapshot.snapshotMeta),
         { headers: buildHeaders(snapshot.snapshotMeta) },
       );
     }
@@ -133,11 +147,11 @@ export async function GET(request: NextRequest) {
         if (!filtered) {
           return NextResponse.json({ error: '해당 레전드를 찾을 수 없습니다' }, { status: 404 });
         }
-        return NextResponse.json(filtered, { headers: buildHeaders(snapshot.snapshotMeta) });
+        return NextResponse.json(buildLegendDetailResponse(filtered, snapshot.data, snapshot.snapshotMeta), { headers: buildHeaders(snapshot.snapshotMeta) });
       }
 
       return NextResponse.json(
-        { ...snapshot.data, snapshotMeta: snapshot.snapshotMeta },
+        buildLegendsResponse(snapshot.data, snapshot.snapshotMeta),
         { headers: buildHeaders(snapshot.snapshotMeta) },
       );
     }

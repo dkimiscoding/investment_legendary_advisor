@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import SnapshotStatusBanner from '@/components/SnapshotStatusBanner';
+import type { ReliabilitySummary } from '@/lib/reliability';
 import type { SnapshotMeta } from '@/lib/snapshots';
+import type { ScreeningUniverseMeta } from '@/types';
 
 // ─── 타입 정의 ───────────────────────────────────────
 
@@ -63,6 +65,8 @@ interface DailyReport {
   };
   updatedAt: string;
   snapshotMeta?: SnapshotMeta;
+  reliability?: ReliabilitySummary;
+  universeMeta?: ScreeningUniverseMeta;
 }
 
 // ─── 상수 ────────────────────────────────────────────
@@ -174,8 +178,8 @@ function StockCard({ result }: { result: ScreeningResult }) {
           <span className="text-xs text-gray-600">{CATEGORY_LABELS[result.category] || result.category}</span>
         </div>
         <div className="text-right shrink-0 ml-3">
-          <div className={`text-2xl font-bold ${scoreColor}`}>{pct}점</div>
-          <div className="text-xs text-gray-500">{result.totalScore}/{result.maxScore}점 (100점 환산)</div>
+          <div className={`text-2xl font-bold ${scoreColor}`}>{pct}/100</div>
+          <div className="text-xs text-gray-500">원점수 {result.totalScore}/{result.maxScore}</div>
         </div>
       </div>
 
@@ -498,7 +502,11 @@ export default function DiscoverPage() {
 
         {report && (
           <>
-            <SnapshotStatusBanner snapshotMeta={report.snapshotMeta} />
+            <SnapshotStatusBanner
+              snapshotMeta={report.snapshotMeta}
+              reliability={report.reliability}
+              universeMeta={report.universeMeta}
+            />
 
             {/* Market Summary */}
             <MarketSummary summary={report.marketSummary} />

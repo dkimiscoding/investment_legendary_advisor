@@ -7,6 +7,7 @@ import { calculateSentimentScore } from '@/lib/screeners/sentiment-screener';
 import { calculateCombinedScore } from '@/lib/screeners/combined-screener';
 import { calculateDividendScore } from '@/lib/screeners/dividend-screener';
 import { analyzeMasters } from '@/lib/screeners/masters-screener';
+import { buildCombinedScoreDisplay } from '@/lib/response-metadata';
 import { sanitizeTicker } from '@/lib/validate-ticker';
 
 export async function GET(
@@ -49,9 +50,18 @@ export async function GET(
     });
 
     const combined = calculateCombinedScore(chartResult, valuationResult, sentimentResult, dividendAnalysis, mastersResult);
+    const scoreDisplay = buildCombinedScoreDisplay({
+      totalScore: combined.totalScore,
+      chartScore: chartResult.scores.total,
+      valuationScore: valuationResult.scores.total,
+      sentimentScore: sentimentResult.totalScore,
+      dividendScore: dividendAnalysis?.totalScore,
+      mastersScore: mastersResult?.overallScore,
+    });
 
     return NextResponse.json({
       ...combined,
+      scoreDisplay,
       dataSources: sentimentData.sources,
     });
   } catch (error: unknown) {

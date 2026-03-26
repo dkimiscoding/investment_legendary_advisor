@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import SnapshotStatusBanner from '@/components/SnapshotStatusBanner';
+import type { ReliabilitySummary } from '@/lib/reliability';
 import type { SnapshotMeta } from '@/lib/snapshots';
 
 // ─── 타입 정의 ───────────────────────────────────────
@@ -69,6 +70,7 @@ interface ETFReport {
   dividendETFs: ETFResult[];
   allResults: ETFResult[];
   snapshotMeta?: SnapshotMeta;
+  reliability?: ReliabilitySummary;
 }
 
 // ─── 상수 ────────────────────────────────────────────
@@ -220,7 +222,10 @@ export default function ETFPage() {
 
         {report && (
           <>
-            <SnapshotStatusBanner snapshotMeta={report.snapshotMeta} />
+            <SnapshotStatusBanner
+              snapshotMeta={report.snapshotMeta}
+              reliability={report.reliability}
+            />
 
             {/* 요약 카드 */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
@@ -239,8 +244,8 @@ export default function ETFPage() {
                 <div className="text-xs text-gray-500">1위 ETF</div>
               </div>
               <div className="bg-[#3A3A3A] border border-[#1A1A1A] rounded-none border-2 border-[#1A1A1A] p-3 text-center">
-                <div className="text-2xl font-bold text-purple-400">{report.topPicks[0]?.totalScore || 0}/70점</div>
-                <div className="text-xs text-gray-500">최고 점수 (70점 만점)</div>
+                <div className="text-2xl font-bold text-purple-400">{report.topPicks[0] ? `${Math.round((report.topPicks[0].totalScore / 70) * 100)}/100` : '-'}</div>
+                <div className="text-xs text-gray-500">최고 점수 (원점수 {report.topPicks[0]?.totalScore ?? 0}/70)</div>
               </div>
             </div>
 
@@ -297,8 +302,8 @@ export default function ETFPage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-lg font-bold">{etf.totalScore}/70점</div>
-                          <div className="text-xs">{etf.verdictLabel}</div>
+                          <div className="text-lg font-bold">{Math.round((etf.totalScore / 70) * 100)}/100</div>
+                          <div className="text-xs text-gray-400">원점수 {etf.totalScore}/70 · {etf.verdictLabel}</div>
                         </div>
                       </div>
                     </div>
@@ -438,7 +443,7 @@ export default function ETFPage() {
                             </div>
                             <div className="flex justify-between border-t border-[#3A3A3A] pt-1 font-bold">
                               <span>종합 점수</span>
-                              <span>{etf.totalScore}/70점</span>
+                              <span>{Math.round((etf.totalScore / 70) * 100)}/100 <span className="text-gray-500">({etf.totalScore}/70)</span></span>
                             </div>
                           </div>
                         </div>
